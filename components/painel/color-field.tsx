@@ -50,7 +50,7 @@ export function ColorField({
   }
 
   function handleTextChange(event: React.ChangeEvent<HTMLInputElement>) {
-    let value = event.target.value.toUpperCase();
+    const value = event.target.value.toUpperCase();
     event.target.value = value;
     field.onChange(event);
 
