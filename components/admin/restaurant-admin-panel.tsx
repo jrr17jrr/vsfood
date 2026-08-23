@@ -25,6 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ExternalLink, LayoutDashboard, Pencil } from "lucide-react";
 import { formatCurrencyBRL, formatDateTime } from "@/lib/format";
 import {
   deleteRestaurantAction,
@@ -35,8 +36,10 @@ import {
   updateOwnerEmailAction,
   updateOwnerWhatsappAction,
   updateRestaurantPlanAction,
+  updateRestaurantSlugAction,
   updateRestaurantStatusAction,
 } from "@/lib/actions/admin/restaurants";
+import { startAdminViewAction } from "@/lib/actions/admin/admin-view";
 import { getAccessDescriptor } from "@/lib/restaurant-status";
 import { RestaurantStatusBadge } from "@/components/shared/restaurant-status-badge";
 import type { AdminRestaurantDetail } from "@/lib/data/admin";
@@ -67,6 +70,7 @@ export function RestaurantAdminPanel({
   const [trialExpiresAt, setTrialExpiresAt] = useState(restaurant.trial_expires_at.slice(0, 10));
   const [newEmail, setNewEmail] = useState(restaurant.owner_email ?? "");
   const [newWhatsapp, setNewWhatsapp] = useState(restaurant.owner_whatsapp ?? "");
+  const [newSlug, setNewSlug] = useState(restaurant.slug);
   const [loading, setLoading] = useState(false);
 
   function refresh() {
@@ -152,6 +156,17 @@ export function RestaurantAdminPanel({
     }
   }
 
+  async function handleUpdateSlug() {
+    setLoading(true);
+    const result = await updateRestaurantSlugAction(restaurant.id, newSlug);
+    setLoading(false);
+    if (result?.error) toast.error(result.error);
+    else {
+      toast.success("Slug atualizado.");
+      refresh();
+    }
+  }
+
   async function handleResetAccess() {
     if (!restaurant.owner_email) return;
     setLoading(true);
@@ -176,16 +191,38 @@ export function RestaurantAdminPanel({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">{restaurant.name}</h1>
-          <p className="text-sm text-muted-foreground">
-            <Link href={`/loja/${restaurant.slug}`} className="hover:underline" target="_blank">
-              /loja/{restaurant.slug}
-            </Link>
-          </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">{restaurant.name}</h1>
+            <p className="text-sm text-muted-foreground">
+              <Link href={`/loja/${restaurant.slug}`} className="hover:underline" target="_blank">
+                /loja/{restaurant.slug}
+              </Link>
+            </p>
+          </div>
+          <RestaurantStatusBadge descriptor={descriptor} />
         </div>
-        <RestaurantStatusBadge descriptor={descriptor} />
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="outline" size="sm">
+            <a href={`/loja/${restaurant.slug}`} target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="size-4" />
+              Ver loja
+            </a>
+          </Button>
+          <form action={startAdminViewAction.bind(null, restaurant.id, "/painel/aparencia")}>
+            <Button type="submit" variant="outline" size="sm">
+              <Pencil className="size-4" />
+              Editar loja
+            </Button>
+          </form>
+          <form action={startAdminViewAction.bind(null, restaurant.id, "/painel")}>
+            <Button type="submit" size="sm">
+              <LayoutDashboard className="size-4" />
+              Abrir painel da loja
+            </Button>
+          </form>
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
@@ -200,6 +237,25 @@ export function RestaurantAdminPanel({
         <div className="rounded-2xl border bg-card p-4">
           <p className="text-2xl font-bold">{restaurant.owner_name ?? "—"}</p>
           <p className="text-sm text-muted-foreground">{restaurant.owner_email ?? "Sem responsável"}</p>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border bg-card p-5">
+        <h2 className="font-semibold">Endereço da loja</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Mudar o slug altera a URL pública da loja — links e QR Codes antigos deixam de funcionar.
+        </p>
+        <div className="mt-3 flex items-end gap-2">
+          <div className="flex-1 space-y-1.5">
+            <Label>Slug</Label>
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm text-muted-foreground">/loja/</span>
+              <Input value={newSlug} onChange={(e) => setNewSlug(e.target.value)} />
+            </div>
+          </div>
+          <Button variant="outline" onClick={handleUpdateSlug} disabled={loading || newSlug === restaurant.slug}>
+            Salvar slug
+          </Button>
         </div>
       </div>
 

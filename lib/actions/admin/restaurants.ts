@@ -24,6 +24,32 @@ export async function updateRestaurantStatusAction(id: string, status: Restauran
   return {};
 }
 
+const slugField = z
+  .string()
+  .trim()
+  .min(2, "Informe o slug")
+  .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, "Use apenas letras minúsculas, números e hífen");
+
+export async function updateRestaurantSlugAction(id: string, newSlug: string): Promise<Result> {
+  await requireAdmin();
+  const parsed = slugField.safeParse(newSlug);
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Slug inválido." };
+
+  const supabase = await createClient();
+  const { data: current } = await supabase.from("restaurants").select("slug").eq("id", id).maybeSingle();
+
+  const { error } = await supabase.from("restaurants").update({ slug: parsed.data }).eq("id", id);
+  if (error) {
+    if (error.code === "23505") return { error: "Este slug já está em uso por outra loja." };
+    return { error: "Não foi possível alterar o slug." };
+  }
+
+  if (current?.slug) revalidatePath(`/loja/${current.slug}`);
+  revalidatePath(`/loja/${parsed.data}`);
+  revalidateAdmin(id);
+  return {};
+}
+
 export async function updateRestaurantPlanAction(id: string, planId: string): Promise<Result> {
   await requireAdmin();
   const supabase = await createClient();

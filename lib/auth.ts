@@ -3,6 +3,7 @@ import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getAdminViewRestaurantId } from "@/lib/admin-view";
 import type { Profile, RestaurantRole } from "@/types/database";
 
 export const getCurrentUser = cache(async () => {
@@ -45,16 +46,30 @@ export async function requireAdmin(): Promise<Profile> {
 
 /**
  * Garante que o usuário logado é dono/staff de um restaurante e retorna o
- * restaurant_id vinculado. Se ele ainda não tem loja, manda para o onboarding.
+ * restaurant_id vinculado. Se ele ainda não tem loja, manda para /sem-loja.
+ *
+ * Admin é um caso especial: ele nunca tem `restaurant_users` próprio, mas
+ * pode estar em "Modo Admin" (cookie setado via `startAdminViewAction`, só
+ * depois de `requireAdmin()`) visualizando/editando a loja de um cliente. A
+ * fronteira de segurança real continua sendo a RLS (`is_admin()` já libera
+ * admin em qualquer restaurante) — o cookie é só roteamento, nunca concede
+ * nada por si só.
  */
 export const requireRestaurantMembership = cache(async (): Promise<{
   profile: Profile;
   restaurantId: string;
   restaurantRole: RestaurantRole;
+  isAdminView: boolean;
 }> => {
   const profile = await getCurrentProfile();
   if (!profile) redirect("/login");
   if (profile.role !== "restaurant_owner" && profile.role !== "admin") redirect("/");
+
+  if (profile.role === "admin") {
+    const adminViewRestaurantId = await getAdminViewRestaurantId();
+    if (!adminViewRestaurantId) redirect("/admin");
+    return { profile, restaurantId: adminViewRestaurantId, restaurantRole: "owner", isAdminView: true };
+  }
 
   const supabase = await createClient();
   const { data: membership } = await supabase
@@ -64,7 +79,7 @@ export const requireRestaurantMembership = cache(async (): Promise<{
     .limit(1)
     .maybeSingle();
 
-  if (!membership) redirect("/painel/criar-loja");
+  if (!membership) redirect("/sem-loja");
 
-  return { profile, restaurantId: membership.restaurant_id, restaurantRole: membership.role };
+  return { profile, restaurantId: membership.restaurant_id, restaurantRole: membership.role, isAdminView: false };
 });

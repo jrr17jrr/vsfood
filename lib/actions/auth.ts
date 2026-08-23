@@ -3,7 +3,8 @@
 import { redirect } from "next/navigation";
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
 import { onlyDigits } from "@/lib/format";
-import { getSafeRedirectPath } from "@/lib/redirect";
+import { getSafeRedirectPath, isRedirectAllowedForRole, roleHomePath } from "@/lib/redirect";
+import { clearAdminViewCookie } from "@/lib/admin-view";
 import {
   identifierIsEmail,
   loginSchema,
@@ -88,16 +89,15 @@ export async function loginAction(
 
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", data.user.id).single();
 
-  const safeRedirect = redirectTo ? getSafeRedirectPath(redirectTo, "") : "";
-  if (safeRedirect) redirect(safeRedirect);
-  if (profile?.role === "admin") redirect("/admin");
-  if (profile?.role === "restaurant_owner") redirect("/painel");
-  redirect("/minha-conta");
+  const requested = redirectTo ? getSafeRedirectPath(redirectTo, "") : "";
+  if (requested && isRedirectAllowedForRole(requested, profile?.role)) redirect(requested);
+  redirect(roleHomePath(profile?.role));
 }
 
 export async function signOutAction(): Promise<void> {
   const supabase = await createClient();
   await supabase.auth.signOut();
+  await clearAdminViewCookie();
   redirect("/");
 }
 

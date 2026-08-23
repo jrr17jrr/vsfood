@@ -2,13 +2,21 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Search } from "lucide-react";
+import { ExternalLink, LayoutDashboard, MoreVertical, Search, Settings } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { formatDateTime } from "@/lib/format";
 import { getEffectiveStatus, type EffectiveStatus } from "@/lib/admin-status";
 import { getAccessDescriptor } from "@/lib/restaurant-status";
 import { RestaurantStatusBadge } from "@/components/shared/restaurant-status-badge";
+import { startAdminViewAction } from "@/lib/actions/admin/admin-view";
 import type { AdminRestaurantListItem } from "@/lib/data/admin";
 import type { AccessType } from "@/types/database";
 
@@ -110,26 +118,30 @@ export function RestaurantsTable({ restaurants }: { restaurants: AdminRestaurant
         {filtered.map((r) => {
           const descriptor = getAccessDescriptor(r, r.plan_name);
           return (
-            <Link
+            <div
               key={r.id}
-              href={`/admin/restaurantes/${r.id}`}
               className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-card p-4 transition-colors hover:border-primary/40"
             >
               <div>
                 <div className="flex items-center gap-2">
-                  <p className="font-medium">{r.name}</p>
+                  <Link href={`/admin/restaurantes/${r.id}`} className="font-medium hover:underline">
+                    {r.name}
+                  </Link>
                   <RestaurantStatusBadge descriptor={descriptor} />
                 </div>
                 <p className="mt-0.5 text-xs text-muted-foreground">
                   {r.owner_name ?? "Sem responsável"} {r.owner_email ? `· ${r.owner_email}` : ""}
                 </p>
               </div>
-              <div className="text-right text-xs text-muted-foreground">
-                <p>{r.plan_name ?? "Sem plano"}</p>
-                <p>{r.order_count} pedidos</p>
-                <p>Cadastro {formatDateTime(r.created_at)}</p>
+              <div className="flex items-center gap-3">
+                <div className="text-right text-xs text-muted-foreground">
+                  <p>{r.plan_name ?? "Sem plano"}</p>
+                  <p>{r.order_count} pedidos</p>
+                  <p>Cadastro {formatDateTime(r.created_at)}</p>
+                </div>
+                <RestaurantRowActions restaurant={r} />
               </div>
-            </Link>
+            </div>
           );
         })}
 
@@ -138,5 +150,39 @@ export function RestaurantsTable({ restaurants }: { restaurants: AdminRestaurant
         )}
       </div>
     </div>
+  );
+}
+
+function RestaurantRowActions({ restaurant }: { restaurant: AdminRestaurantListItem }) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon-sm" aria-label="Ações da loja">
+          <MoreVertical className="size-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem asChild>
+          <a href={`/loja/${restaurant.slug}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5">
+            <ExternalLink className="size-4" />
+            Ver loja
+          </a>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href={`/admin/restaurantes/${restaurant.id}`} className="flex items-center gap-1.5">
+            <Settings className="size-4" />
+            Gerenciar
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <form action={startAdminViewAction.bind(null, restaurant.id, "/painel")} className="w-full">
+            <button type="submit" className="flex w-full items-center gap-1.5">
+              <LayoutDashboard className="size-4" />
+              Abrir painel
+            </button>
+          </form>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
