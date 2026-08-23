@@ -1,4 +1,17 @@
 import { z } from "zod";
+import { STORE_THEME_KEYS } from "@/lib/theme/store-theme";
+
+const hexColor = z
+  .string()
+  .trim()
+  .regex(/^#[0-9a-fA-F]{6}$/, "Cor inválida — use um hex de 6 dígitos, ex: #FF5A36");
+
+// Mesmas 13 chaves de StoreTheme — z.object com todas obrigatórias, cada uma
+// validada como hex de 6 dígitos. Nunca aceita CSS arbitrário.
+export const storeThemeSchema = z.object(
+  Object.fromEntries(STORE_THEME_KEYS.map((key) => [key, hexColor])) as Record<(typeof STORE_THEME_KEYS)[number], typeof hexColor>,
+);
+export type StoreThemeFormInput = z.infer<typeof storeThemeSchema>;
 
 export const createRestaurantSchema = z.object({
   name: z.string().trim().min(2, "Informe o nome do restaurante"),
@@ -11,10 +24,7 @@ export const restaurantAppearanceSchema = z.object({
   name: z.string().trim().min(2, "Informe o nome do restaurante"),
   description: z.string().trim().max(280).optional(),
   cuisineType: z.string().trim().optional(),
-  primaryColor: z
-    .string()
-    .trim()
-    .regex(/^#[0-9a-fA-F]{6}$/, "Cor inválida"),
+  theme: storeThemeSchema,
   whatsapp: z.string().trim().optional(),
   instagram: z.string().trim().optional(),
   phone: z.string().trim().optional(),

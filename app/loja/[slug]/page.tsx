@@ -8,6 +8,7 @@ import { ProductCatalog } from "@/components/store/product-catalog";
 import { CartWidget } from "@/components/cart/cart-widget";
 import { CartRestaurantSync } from "@/components/store/cart-restaurant-sync";
 import { StoreFooter } from "@/components/layout/public-footer";
+import { parseStoreTheme, storeThemeToCssVars } from "@/lib/theme/store-theme";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -39,16 +40,17 @@ export default async function StorePage({ params }: Props) {
   const { restaurant, categories, openingHours, deliveryZones } = data;
   const openStatus = getOpenStatus(openingHours);
   const minDeliveryFee = deliveryZones.length > 0 ? Math.min(...deliveryZones.map((z) => z.fee)) : null;
+  const theme = parseStoreTheme(restaurant.theme);
 
   return (
-    <>
+    <div className="contents" style={storeThemeToCssVars(theme)}>
       <CartRestaurantSync restaurantId={restaurant.id} slug={restaurant.slug} />
-      <main className="flex-1 pb-24 sm:pb-10">
+      <main className="flex-1 bg-[var(--store-bg)] pb-24 sm:pb-10">
         <StoreHeader restaurant={restaurant} openStatus={openStatus} minDeliveryFee={minDeliveryFee} />
         <CategoryNav categories={categories.map((c) => ({ id: c.id, name: c.name }))} />
         {categories.length === 0 ? (
-          <div className="mx-auto max-w-4xl px-4 py-16 text-center text-muted-foreground">
-            <p className="font-medium text-foreground">Cardápio em breve</p>
+          <div className="mx-auto max-w-4xl px-4 py-16 text-center text-[var(--store-text-muted)]">
+            <p className="font-medium text-[var(--store-text)]">Cardápio em breve</p>
             <p className="mt-1 text-sm">Esta loja ainda está preparando seu cardápio.</p>
           </div>
         ) : (
@@ -57,6 +59,6 @@ export default async function StorePage({ params }: Props) {
       </main>
       <CartWidget minOrderValue={restaurant.min_order_value} />
       <StoreFooter restaurantName={restaurant.name} />
-    </>
+    </div>
   );
 }

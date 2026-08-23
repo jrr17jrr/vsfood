@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Image from "next/image";
 import { toast } from "sonner";
 import { Minus, Plus } from "lucide-react";
 import {
@@ -18,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { ImageWithFallback } from "@/components/shared/image-with-fallback";
 import { formatCurrencyBRL } from "@/lib/format";
 import { useCartStore, type CartSelectedOption } from "@/lib/store/cart";
 import type { StorefrontProduct } from "@/lib/data/storefront";
@@ -118,25 +118,30 @@ export function ProductModal({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="max-h-[90vh] overflow-y-auto border-[var(--store-border)] bg-[var(--store-card)] sm:max-w-lg">
         <DialogHeader>
           {product.image_url && (
-            <div className="relative -mx-6 -mt-6 mb-2 h-44 overflow-hidden">
-              <Image src={product.image_url} alt={product.name} fill sizes="600px" className="object-cover" />
+            <div className="relative -mx-6 -mt-6 mb-2 h-44 overflow-hidden bg-[var(--store-category-bg)]">
+              <ImageWithFallback src={product.image_url} alt={product.name} fill sizes="600px" className="object-cover" showLabel={false} />
             </div>
           )}
-          <DialogTitle>{product.name}</DialogTitle>
-          {product.description && <DialogDescription>{product.description}</DialogDescription>}
+          <DialogTitle className="text-[var(--store-text)]">{product.name}</DialogTitle>
+          {product.description && (
+            <DialogDescription className="text-[var(--store-text-muted)]">{product.description}</DialogDescription>
+          )}
         </DialogHeader>
 
-        <p className="text-xl font-bold text-primary">{formatCurrencyBRL(basePrice)}</p>
+        <p className="text-xl font-bold text-[var(--store-price)]">{formatCurrencyBRL(basePrice)}</p>
 
         <div className="space-y-6">
           {product.optionGroups.map((group) => (
             <div key={group.id}>
               <div className="flex items-center justify-between">
-                <p className="font-medium">{group.name}</p>
-                <Badge variant={group.required ? "default" : "secondary"}>
+                <p className="font-medium text-[var(--store-text)]">{group.name}</p>
+                <Badge
+                  variant={group.required ? "default" : "secondary"}
+                  className={group.required ? "bg-[var(--store-primary)] text-[var(--store-button-text)]" : undefined}
+                >
                   {group.required ? "Obrigatório" : "Opcional"} · máx {group.max_select}
                 </Badge>
               </div>
@@ -151,7 +156,7 @@ export function ProductModal({
                     <Label
                       key={option.id}
                       htmlFor={option.id}
-                      className="flex cursor-pointer items-center justify-between rounded-lg border p-3 text-sm font-normal has-[[data-state=checked]]:border-primary"
+                      className="flex cursor-pointer items-center justify-between rounded-lg border p-3 text-sm font-normal has-[[data-state=checked]]:border-[var(--store-primary)]"
                     >
                       <span className="flex items-center gap-2">
                         <RadioGroupItem value={option.id} id={option.id} />
@@ -171,7 +176,7 @@ export function ProductModal({
                       <Label
                         key={option.id}
                         htmlFor={option.id}
-                        className="flex cursor-pointer items-center justify-between rounded-lg border p-3 text-sm font-normal has-[[data-state=checked]]:border-primary"
+                        className="flex cursor-pointer items-center justify-between rounded-lg border p-3 text-sm font-normal has-[[data-state=checked]]:border-[var(--store-primary)]"
                       >
                         <span className="flex items-center gap-2">
                           <Checkbox
@@ -226,7 +231,12 @@ export function ProductModal({
               <Plus className="size-4" />
             </Button>
           </div>
-          <Button className="flex-1" size="lg" onClick={handleAdd}>
+          <Button
+            className="flex-1"
+            size="lg"
+            style={{ backgroundColor: "var(--store-button)", color: "var(--store-button-text)" }}
+            onClick={handleAdd}
+          >
             Adicionar · {formatCurrencyBRL(totalPrice)}
           </Button>
         </DialogFooter>

@@ -1,9 +1,9 @@
-import Image from "next/image";
 import { Clock, Truck, Wallet } from "lucide-react";
 import type { Restaurant } from "@/types/database";
 import type { OpenStatus } from "@/lib/opening-hours";
 import { formatCurrencyBRL } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
+import { ImageWithFallback } from "@/components/shared/image-with-fallback";
 
 export function StoreHeader({
   restaurant,
@@ -17,7 +17,7 @@ export function StoreHeader({
   const isReallyOpen = openStatus.isOpen && !restaurant.orders_paused;
 
   return (
-    <div>
+    <div className="bg-[var(--store-header)]">
       {/*
         Ratio por breakpoint em vez de um único aspect-ratio: no mobile
         (< sm) um container mais largo que alto (ex: 8/3) espreme demais uma
@@ -29,28 +29,36 @@ export function StoreHeader({
         max-h evita o banner ficar gigante em telas muito largas (o container
         é full-bleed, sem max-width).
       */}
-      <div className="relative aspect-[3/2] w-full overflow-hidden bg-muted sm:aspect-[8/3] sm:max-h-[480px]">
+      <div className="relative aspect-[3/2] w-full overflow-hidden bg-[var(--store-category-bg)] sm:aspect-[8/3] sm:max-h-[480px]">
         {restaurant.banner_url ? (
-          <Image
+          <ImageWithFallback
             src={restaurant.banner_url}
             alt=""
             fill
             sizes="100vw"
             className="object-cover object-center"
+            showLabel={false}
             priority
           />
         ) : (
-          <div className="size-full bg-gradient-to-br from-brand-orange to-brand-red" />
+          <div className="size-full bg-gradient-to-br from-[var(--store-primary)] to-[var(--store-secondary)]" />
         )}
       </div>
 
       <div className="mx-auto max-w-4xl px-4">
         <div className="-mt-12 flex items-end gap-4">
-          <div className="relative size-20 shrink-0 overflow-hidden rounded-2xl border-4 border-background bg-card p-2 shadow-md sm:size-24">
+          <div className="relative size-20 shrink-0 overflow-hidden rounded-2xl border-4 border-[var(--store-header)] bg-[var(--store-card)] p-2 shadow-md sm:size-24">
             {restaurant.logo_url ? (
-              <Image src={restaurant.logo_url} alt={restaurant.name} fill sizes="96px" className="object-contain" />
+              <ImageWithFallback
+                src={restaurant.logo_url}
+                alt={restaurant.name}
+                fill
+                sizes="96px"
+                className="object-contain"
+                showLabel={false}
+              />
             ) : (
-              <div className="grid size-full place-items-center bg-secondary text-2xl font-bold text-secondary-foreground">
+              <div className="grid size-full place-items-center bg-[var(--store-primary)] text-2xl font-bold text-[var(--store-button-text)]">
                 {restaurant.name.charAt(0)}
               </div>
             )}
@@ -58,16 +66,19 @@ export function StoreHeader({
         </div>
 
         <div className="mt-3 flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-bold tracking-tight">{restaurant.name}</h1>
-          <Badge variant={isReallyOpen ? "default" : "secondary"} className={isReallyOpen ? "bg-primary" : ""}>
+          <h1 className="text-2xl font-bold tracking-tight text-[var(--store-text)]">{restaurant.name}</h1>
+          <Badge
+            variant={isReallyOpen ? "default" : "secondary"}
+            className={isReallyOpen ? "bg-[var(--store-primary)] text-[var(--store-button-text)]" : ""}
+          >
             {isReallyOpen ? "Aberto" : "Fechado"}
           </Badge>
         </div>
         {restaurant.description && (
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{restaurant.description}</p>
+          <p className="mt-1 max-w-2xl text-sm text-[var(--store-text-muted)]">{restaurant.description}</p>
         )}
 
-        <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-muted-foreground">
+        <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-[var(--store-text-muted)]">
           <span className="flex items-center gap-1.5">
             <Clock className="size-4" />
             {isReallyOpen ? `${restaurant.estimated_time_minutes} min` : openStatus.nextOpening ? `Abre ${openStatus.nextOpening}` : "Fechado no momento"}

@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useState } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ImagePlus, Loader2 } from "lucide-react";
@@ -24,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { ImageWithFallback } from "@/components/shared/image-with-fallback";
 import { createProductAction, updateProductAction } from "@/lib/actions/painel/menu";
 import { uploadProductImage } from "@/lib/storage";
 import { OptionGroupsEditor } from "./option-groups-editor";
@@ -125,7 +125,7 @@ export function ProductDialog({
               {uploading ? (
                 <Loader2 className="size-5 animate-spin text-muted-foreground" />
               ) : imageUrl ? (
-                <Image src={imageUrl} alt="" fill sizes="80px" className="object-cover" />
+                <ImageWithFallback src={imageUrl} alt="" fill sizes="80px" className="object-cover" showLabel={false} />
               ) : (
                 <ImagePlus className="size-5 text-muted-foreground" />
               )}

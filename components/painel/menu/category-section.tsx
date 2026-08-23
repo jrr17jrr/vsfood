@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import { toast } from "sonner";
 import { ChevronDown, ChevronUp, Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -18,6 +17,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { ImageWithFallback } from "@/components/shared/image-with-fallback";
 import { formatCurrencyBRL } from "@/lib/format";
 import {
   deleteCategoryAction,
@@ -126,7 +126,7 @@ export function CategorySection({
         {category.products.map((product) => (
           <div key={product.id} className="flex items-center gap-3 p-3">
             <div className="relative size-12 shrink-0 overflow-hidden rounded-lg bg-muted">
-              {product.image_url && <Image src={product.image_url} alt="" fill sizes="48px" className="object-cover" />}
+              <ImageWithFallback src={product.image_url} alt="" fill sizes="48px" className="object-cover" showLabel={false} />
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium">{product.name}</p>

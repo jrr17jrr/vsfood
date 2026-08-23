@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { ImageWithFallback } from "@/components/shared/image-with-fallback";
 import { formatCurrencyBRL } from "@/lib/format";
 import { cartItemTotal, cartSubtotal, useCartStore } from "@/lib/store/cart";
 
@@ -40,8 +40,8 @@ export function CartSheet({
           <div className="flex-1 space-y-4 overflow-y-auto px-4">
             {items.map((item) => (
               <div key={item.lineId} className="flex gap-3 border-b pb-4">
-                <div className="relative size-16 shrink-0 overflow-hidden rounded-lg bg-muted">
-                  {item.imageUrl && <Image src={item.imageUrl} alt={item.name} fill sizes="64px" className="object-cover" />}
+                <div className="relative size-16 shrink-0 overflow-hidden rounded-lg bg-[var(--store-category-bg)]">
+                  <ImageWithFallback src={item.imageUrl} alt={item.name} fill sizes="64px" className="object-cover" showLabel={false} />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-2">
@@ -96,7 +96,13 @@ export function CartSheet({
                 Pedido mínimo: {formatCurrencyBRL(minOrderValue)}
               </p>
             )}
-            <Button size="lg" className="mt-1 w-full" disabled={belowMinimum} asChild={!belowMinimum}>
+            <Button
+              size="lg"
+              className="mt-1 w-full"
+              style={belowMinimum ? undefined : { backgroundColor: "var(--store-button)", color: "var(--store-button-text)" }}
+              disabled={belowMinimum}
+              asChild={!belowMinimum}
+            >
               {belowMinimum ? (
                 <span>Falta {formatCurrencyBRL(minOrderValue - subtotal)} para o mínimo</span>
               ) : (

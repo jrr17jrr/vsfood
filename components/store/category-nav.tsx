@@ -19,7 +19,10 @@ export function CategoryNav({ categories }: { categories: { id: string; name: st
           setActiveId(visible[0].target.id.replace("categoria-", ""));
         }
       },
-      { rootMargin: "-160px 0px -60% 0px", threshold: 0 },
+      // Não existe nenhum header fixo acima do nav em /loja/[slug] — o offset
+      // aqui é só a altura do próprio nav (~64px, sticky em top-0), nunca a
+      // altura de um header que não existe.
+      { rootMargin: "-72px 0px -60% 0px", threshold: 0 },
     );
 
     for (const s of sections) observer.observe(s);
@@ -29,7 +32,10 @@ export function CategoryNav({ categories }: { categories: { id: string; name: st
   if (categories.length === 0) return null;
 
   return (
-    <div ref={navRef} className="sticky top-16 z-30 border-b bg-background/95 backdrop-blur">
+    <div
+      ref={navRef}
+      className="sticky top-0 z-30 border-b border-[var(--store-border)] bg-[var(--store-header)]/95 backdrop-blur"
+    >
       <div className="mx-auto flex max-w-4xl gap-2 overflow-x-auto px-4 py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {categories.map((c) => (
           <a
@@ -38,8 +44,8 @@ export function CategoryNav({ categories }: { categories: { id: string; name: st
             className={cn(
               "shrink-0 rounded-full border px-4 py-1.5 text-sm font-medium whitespace-nowrap transition-colors",
               activeId === c.id
-                ? "border-primary bg-primary text-primary-foreground"
-                : "border-border bg-secondary text-secondary-foreground hover:border-primary/40",
+                ? "border-[var(--store-category-active)] bg-[var(--store-category-active)] text-[var(--store-button-text)]"
+                : "border-[var(--store-border)] bg-[var(--store-category-bg)] text-[var(--store-text)] hover:border-[var(--store-category-active)]/40",
             )}
           >
             {c.name}

@@ -48,6 +48,7 @@ export type Restaurant = Timestamps & {
   logo_url: string | null;
   banner_url: string | null;
   primary_color: string;
+  theme: Record<string, string> | null;
   whatsapp: string | null;
   instagram: string | null;
   phone: string | null;

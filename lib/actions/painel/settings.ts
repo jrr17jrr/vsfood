@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireRestaurantMembership } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { restaurantAppearanceSchema, type RestaurantAppearanceInput } from "@/lib/validations/restaurant";
+import { DEFAULT_STORE_THEME } from "@/lib/theme/store-theme";
 
 export async function toggleOrdersPausedAction(paused: boolean): Promise<{ error?: string }> {
   const { restaurantId } = await requireRestaurantMembership();
@@ -28,7 +29,8 @@ export async function updateAppearanceAction(
       name: parsed.data.name,
       description: parsed.data.description || null,
       cuisine_type: parsed.data.cuisineType || null,
-      primary_color: parsed.data.primaryColor,
+      primary_color: parsed.data.theme.primary,
+      theme: parsed.data.theme,
       whatsapp: parsed.data.whatsapp || null,
       instagram: parsed.data.instagram || null,
       phone: parsed.data.phone || null,
@@ -48,5 +50,19 @@ export async function updateAppearanceAction(
 
   if (error) return { error: "Não foi possível salvar as alterações." };
   revalidatePath("/painel", "layout");
+  return {};
+}
+
+export async function resetThemeAction(): Promise<{ error?: string }> {
+  const { restaurantId } = await requireRestaurantMembership();
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("restaurants")
+    .update({ theme: DEFAULT_STORE_THEME, primary_color: DEFAULT_STORE_THEME.primary })
+    .eq("id", restaurantId);
+
+  if (error) return { error: "Não foi possível restaurar o padrão." };
+  revalidatePath("/painel", "layout");
+  revalidatePath("/loja", "layout");
   return {};
 }
