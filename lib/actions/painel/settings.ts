@@ -23,7 +23,7 @@ export async function updateAppearanceAction(
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
 
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("restaurants")
     .update({
       name: parsed.data.name,
@@ -46,23 +46,54 @@ export async function updateAppearanceAction(
       ...(input.logoUrl !== undefined ? { logo_url: input.logoUrl } : {}),
       ...(input.bannerUrl !== undefined ? { banner_url: input.bannerUrl } : {}),
     })
-    .eq("id", restaurantId);
+    .eq("id", restaurantId)
+    .select("slug, theme")
+    .single();
 
-  if (error) return { error: "Não foi possível salvar as alterações." };
+  if (error) {
+    console.error("[updateAppearanceAction] erro ao salvar aparência", {
+      restaurantId,
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+    });
+    return { error: `Não foi possível salvar as alterações${error.message ? `: ${error.message}` : "."}` };
+  }
+
+  if (!data) {
+    return { error: "A loja não foi atualizada. Verifique seu acesso e tente novamente." };
+  }
+
   revalidatePath("/painel", "layout");
+  revalidatePath("/painel/aparencia");
+  revalidatePath(`/loja/${data.slug}`);
   return {};
 }
 
 export async function resetThemeAction(): Promise<{ error?: string }> {
   const { restaurantId } = await requireRestaurantMembership();
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("restaurants")
     .update({ theme: DEFAULT_STORE_THEME, primary_color: DEFAULT_STORE_THEME.primary })
-    .eq("id", restaurantId);
+    .eq("id", restaurantId)
+    .select("slug")
+    .single();
 
-  if (error) return { error: "Não foi possível restaurar o padrão." };
+  if (error) {
+    console.error("[resetThemeAction] erro ao restaurar tema", {
+      restaurantId,
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+    });
+    return { error: `Não foi possível restaurar o padrão${error.message ? `: ${error.message}` : "."}` };
+  }
+
   revalidatePath("/painel", "layout");
-  revalidatePath("/loja", "layout");
+  revalidatePath("/painel/aparencia");
+  if (data?.slug) revalidatePath(`/loja/${data.slug}`);
   return {};
 }

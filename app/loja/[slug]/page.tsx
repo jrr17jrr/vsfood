@@ -41,9 +41,10 @@ export default async function StorePage({ params }: Props) {
   const openStatus = getOpenStatus(openingHours);
   const minDeliveryFee = deliveryZones.length > 0 ? Math.min(...deliveryZones.map((z) => z.fee)) : null;
   const theme = parseStoreTheme(restaurant.theme);
+  const themeStyle = storeThemeToCssVars(theme);
 
   return (
-    <div className="contents" style={storeThemeToCssVars(theme)}>
+    <div className="contents" style={themeStyle}>
       <CartRestaurantSync restaurantId={restaurant.id} slug={restaurant.slug} />
       <main className="flex-1 bg-[var(--store-bg)] pb-24 sm:pb-10">
         <StoreHeader restaurant={restaurant} openStatus={openStatus} minDeliveryFee={minDeliveryFee} />
@@ -54,7 +55,7 @@ export default async function StorePage({ params }: Props) {
             <p className="mt-1 text-sm">Esta loja ainda está preparando seu cardápio.</p>
           </div>
         ) : (
-          <ProductCatalog categories={categories} />
+          <ProductCatalog categories={categories} themeStyle={themeStyle} />
         )}
       </main>
       <CartWidget minOrderValue={restaurant.min_order_value} />
