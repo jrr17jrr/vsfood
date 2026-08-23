@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { ExternalLink } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { RestaurantStatusBadge } from "@/components/shared/restaurant-status-badge";
@@ -34,9 +35,18 @@ export function StoreStatusBar({ restaurant, planName }: { restaurant: Restauran
   return (
     <div className="border-b bg-background">
       <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
-        <RestaurantStatusBadge descriptor={descriptor} />
+        <div className="flex flex-wrap items-center gap-2">
+          <RestaurantStatusBadge descriptor={descriptor} />
+          <Button asChild size="sm" variant="outline">
+            <a href={`/loja/${restaurant.slug}`} target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="size-4" />
+              Ver loja
+            </a>
+          </Button>
+        </div>
         <label className="flex items-center gap-2 text-sm font-medium">
-          Pausar pedidos
+          <span className="hidden sm:inline">Pausar pedidos</span>
+          <span className="sm:hidden">Pausar</span>
           <Switch checked={paused} disabled={loading} onCheckedChange={handleToggle} />
         </label>
       </div>

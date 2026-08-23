@@ -1,20 +1,28 @@
 import "server-only";
 
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type { Order, Restaurant } from "@/types/database";
 
-export async function getRestaurant(restaurantId: string): Promise<Restaurant | null> {
+/**
+ * `cache()` dedupe por request: tanto app/painel/layout.tsx quanto a page.tsx
+ * de várias rotas (aparência, dashboard) buscam o mesmo restaurante — sem
+ * isso, uma carga direta/hard refresh de /painel/aparencia disparava a mesma
+ * query duas vezes no mesmo request. Escopo é só dentro de UM request, nunca
+ * atravessa navegações nem usuários.
+ */
+export const getRestaurant = cache(async (restaurantId: string): Promise<Restaurant | null> => {
   const supabase = await createClient();
   const { data } = await supabase.from("restaurants").select("*").eq("id", restaurantId).maybeSingle();
   return data;
-}
+});
 
-export async function getPlanName(planId: string | null): Promise<string | null> {
+export const getPlanName = cache(async (planId: string | null): Promise<string | null> => {
   if (!planId) return null;
   const supabase = await createClient();
   const { data } = await supabase.from("plans").select("name").eq("id", planId).maybeSingle();
   return data?.name ?? null;
-}
+});
 
 export type DashboardStats = {
   ordersToday: number;

@@ -1,21 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import {
-  BookOpenText,
-  ClipboardList,
-  DollarSign,
-  ExternalLink,
-  Palette,
-  Receipt,
-  ShoppingBag,
-  Ticket,
-} from "lucide-react";
+import { BookOpenText, ClipboardList, DollarSign, Palette, Receipt, ShoppingBag, Ticket } from "lucide-react";
 import { requireRestaurantMembership } from "@/lib/auth";
 import { getDashboardStats, getRestaurant, getPlanName } from "@/lib/data/painel";
 import { formatCurrencyBRL } from "@/lib/format";
-import { getAccessDescriptor } from "@/lib/restaurant-status";
-import { RestaurantStatusBadge } from "@/components/shared/restaurant-status-badge";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -30,7 +19,6 @@ export default async function PainelDashboardPage() {
   const [restaurant, stats] = await Promise.all([getRestaurant(restaurantId), getDashboardStats(restaurantId)]);
   if (!restaurant) notFound();
   const planName = await getPlanName(restaurant.plan_id);
-  const descriptor = getAccessDescriptor(restaurant, planName);
 
   const cards = [
     { label: "Pedidos hoje", value: stats.ordersToday, icon: ShoppingBag },
@@ -42,23 +30,9 @@ export default async function PainelDashboardPage() {
 
   return (
     <div>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">{restaurant.name}</h1>
-          <div className="mt-1 flex items-center gap-2">
-            <RestaurantStatusBadge descriptor={descriptor} />
-            {planName && <span className="text-sm text-muted-foreground">Plano {planName}</span>}
-          </div>
-        </div>
-        <a
-          href={`/loja/${restaurant.slug}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
-        >
-          <ExternalLink className="size-4" />
-          Ver loja
-        </a>
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">{restaurant.name}</h1>
+        {planName && <p className="mt-1 text-sm text-muted-foreground">Plano {planName}</p>}
       </div>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">

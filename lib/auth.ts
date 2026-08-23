@@ -61,41 +61,54 @@ export const requireRestaurantMembership = cache(async (): Promise<{
   restaurantRole: RestaurantRole;
   isAdminView: boolean;
 }> => {
-  const profile = await getCurrentProfile();
-  if (!profile) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
     console.error("[requireRestaurantMembership] sem sessão — redirecionando pra /login");
     redirect("/login");
   }
+
+  // profiles e restaurant_users só dependem do user.id, não um do outro — iam
+  // sequenciais antes (uma volta de latência inteira a mais). Essa função
+  // roda de novo a cada navegação dentro de /painel (React `cache()` só dedupe
+  // dentro do mesmo request, nunca entre navegações — isso é intencional,
+  // qualquer coisa "entre requests" aqui vazaria dado de um usuário/loja pro
+  // próximo), então paralelizar aqui é o que mais pesa na sensação de troca
+  // de página.
+  const [{ data: profile }, { data: membership }, adminViewRestaurantId] = await Promise.all([
+    supabase.from("profiles").select("*").eq("id", user.id).single(),
+    supabase.from("restaurant_users").select("restaurant_id, role").eq("user_id", user.id).limit(1).maybeSingle(),
+    getAdminViewRestaurantId(),
+  ]);
+
+  if (!profile) {
+    console.error(`[requireRestaurantMembership] user=${user.id} sem profiles — redirecionando pra /login`);
+    redirect("/login");
+  }
   if (profile.role !== "restaurant_owner" && profile.role !== "admin") {
-    console.error(`[requireRestaurantMembership] user=${profile.id} role="${profile.role}" não é restaurant_owner nem admin — redirecionando pra /`);
+    console.error(`[requireRestaurantMembership] user=${user.id} role="${profile.role}" não é restaurant_owner nem admin — redirecionando pra /`);
     redirect("/");
   }
 
   if (profile.role === "admin") {
-    const adminViewRestaurantId = await getAdminViewRestaurantId();
     if (!adminViewRestaurantId) {
-      console.error(`[requireRestaurantMembership] admin=${profile.id} sem Modo Admin ativo — redirecionando pra /admin`);
+      console.error(`[requireRestaurantMembership] admin=${user.id} sem Modo Admin ativo — redirecionando pra /admin`);
       redirect("/admin");
     }
-    console.error(`[requireRestaurantMembership] admin=${profile.id} Modo Admin restaurantId=${adminViewRestaurantId}`);
+    console.error(`[requireRestaurantMembership] admin=${user.id} Modo Admin restaurantId=${adminViewRestaurantId}`);
     return { profile, restaurantId: adminViewRestaurantId, restaurantRole: "owner", isAdminView: true };
   }
 
-  const supabase = await createClient();
-  const { data: membership } = await supabase
-    .from("restaurant_users")
-    .select("restaurant_id, role")
-    .eq("user_id", profile.id)
-    .limit(1)
-    .maybeSingle();
-
   if (!membership) {
-    console.error(`[requireRestaurantMembership] user=${profile.id} role="${profile.role}" sem linha em restaurant_users — redirecionando pra /sem-loja`);
+    console.error(`[requireRestaurantMembership] user=${user.id} role="${profile.role}" sem linha em restaurant_users — redirecionando pra /sem-loja`);
     redirect("/sem-loja");
   }
 
   console.error(
-    `[requireRestaurantMembership] user=${profile.id} membership restaurantId=${membership.restaurant_id} role=${membership.role}`,
+    `[requireRestaurantMembership] user=${user.id} membership restaurantId=${membership.restaurant_id} role=${membership.role}`,
   );
   return { profile, restaurantId: membership.restaurant_id, restaurantRole: membership.role, isAdminView: false };
 });
