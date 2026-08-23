@@ -35,7 +35,7 @@ const ACCESS_TYPE_OPTIONS: { value: AccessType; label: string; description: stri
   { value: "demo", label: "Demonstração", description: "Não expira, não é cobrada e não entra no MRR." },
 ];
 
-type SuccessState = { name: string; slug: string; ownerEmail: string; password: string };
+type SuccessState = { name: string; slug: string; ownerEmail: string; password: string; warning?: string };
 type ConflictState = { profileId: string; ownerName: string } | null;
 type SlugStatus = "idle" | "checking" | "available" | "taken";
 
@@ -180,6 +180,11 @@ export function CreateRestaurantAdminForm({
             <span className="font-medium">{success.password}</span>
           </p>
         </div>
+        {success.warning && (
+          <p className="w-full rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-left text-xs text-destructive">
+            {success.warning}
+          </p>
+        )}
         <p className="text-xs text-muted-foreground">
           Anote a senha agora — ela não será exibida novamente. O responsável pode entrar em{" "}
           <Link href="/login" className="underline">
