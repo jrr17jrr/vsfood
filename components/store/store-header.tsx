@@ -18,9 +18,24 @@ export function StoreHeader({
 
   return (
     <div>
-      <div className="relative h-36 w-full overflow-hidden bg-muted sm:h-56">
+      {/*
+        aspect-ratio em vez de altura fixa: a arte inteira do banner cabe no
+        container em qualquer largura de tela. object-contain no mobile evita
+        cortar texto/elementos importantes de uma arte larga num viewport
+        estreito; a partir de sm a proporção já favorece object-cover sem
+        recorte agressivo. max-h evita o banner ficar gigante em telas muito
+        largas (o container é full-bleed, sem max-width).
+      */}
+      <div className="relative aspect-[8/3] w-full overflow-hidden bg-muted sm:max-h-[480px]">
         {restaurant.banner_url ? (
-          <Image src={restaurant.banner_url} alt="" fill sizes="100vw" className="object-cover" priority />
+          <Image
+            src={restaurant.banner_url}
+            alt=""
+            fill
+            sizes="100vw"
+            className="object-contain sm:object-cover"
+            priority
+          />
         ) : (
           <div className="size-full bg-gradient-to-br from-brand-orange to-brand-red" />
         )}
@@ -28,9 +43,9 @@ export function StoreHeader({
 
       <div className="mx-auto max-w-4xl px-4">
         <div className="-mt-10 flex items-end gap-4 sm:-mt-12">
-          <div className="size-20 shrink-0 overflow-hidden rounded-2xl border-4 border-background bg-card shadow-md sm:size-24">
+          <div className="relative size-20 shrink-0 overflow-hidden rounded-2xl border-4 border-background bg-card p-2 shadow-md sm:size-24">
             {restaurant.logo_url ? (
-              <Image src={restaurant.logo_url} alt={restaurant.name} width={96} height={96} className="size-full object-cover" />
+              <Image src={restaurant.logo_url} alt={restaurant.name} fill sizes="96px" className="object-contain" />
             ) : (
               <div className="grid size-full place-items-center bg-secondary text-2xl font-bold text-secondary-foreground">
                 {restaurant.name.charAt(0)}

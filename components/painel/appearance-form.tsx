@@ -95,34 +95,36 @@ export function AppearanceForm({ restaurant }: { restaurant: Restaurant }) {
           <button
             type="button"
             onClick={() => logoInputRef.current?.click()}
-            className="relative mt-2 flex size-24 items-center justify-center overflow-hidden rounded-2xl border border-dashed bg-muted"
+            className="relative mt-2 flex size-24 items-center justify-center overflow-hidden rounded-2xl border border-dashed bg-muted p-2"
           >
             {uploadingLogo ? (
               <Loader2 className="size-5 animate-spin text-muted-foreground" />
             ) : logoUrl ? (
-              <Image src={logoUrl} alt="" fill sizes="96px" className="object-cover" />
+              <Image src={logoUrl} alt="" fill sizes="96px" className="object-contain" />
             ) : (
               <ImagePlus className="size-5 text-muted-foreground" />
             )}
           </button>
           <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoChange} />
+          <p className="mt-1 text-xs text-muted-foreground">Tamanho recomendado: 512x512px</p>
         </div>
         <div>
           <Label>Banner</Label>
           <button
             type="button"
             onClick={() => bannerInputRef.current?.click()}
-            className="relative mt-2 flex h-24 w-full items-center justify-center overflow-hidden rounded-2xl border border-dashed bg-muted"
+            className="relative mt-2 flex aspect-[8/3] w-full items-center justify-center overflow-hidden rounded-2xl border border-dashed bg-muted"
           >
             {uploadingBanner ? (
               <Loader2 className="size-5 animate-spin text-muted-foreground" />
             ) : bannerUrl ? (
-              <Image src={bannerUrl} alt="" fill sizes="400px" className="object-cover" />
+              <Image src={bannerUrl} alt="" fill sizes="400px" className="object-contain sm:object-cover" />
             ) : (
               <ImagePlus className="size-5 text-muted-foreground" />
             )}
           </button>
           <input ref={bannerInputRef} type="file" accept="image/*" className="hidden" onChange={handleBannerChange} />
+          <p className="mt-1 text-xs text-muted-foreground">Tamanho recomendado: 1920x720px</p>
         </div>
       </div>
 
