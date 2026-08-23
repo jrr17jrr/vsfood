@@ -8,9 +8,11 @@ import { CheckCircle2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { slugifyName } from "@/lib/slug";
+import { formatWhatsappDisplay } from "@/lib/format";
 import {
   createRestaurantByAdminSchema,
   type CreateRestaurantByAdminInput,
@@ -51,6 +53,7 @@ export function CreateRestaurantAdminForm({
   const [success, setSuccess] = useState<SuccessState | null>(null);
   const [loading, setLoading] = useState(false);
   const [slugTouched, setSlugTouched] = useState(false);
+  const [addWhatsappLater, setAddWhatsappLater] = useState(false);
   const [planTouched, setPlanTouched] = useState(false);
   const [trialDaysTouched, setTrialDaysTouched] = useState(false);
   const [slugStatus, setSlugStatus] = useState<SlugStatus>("idle");
@@ -76,6 +79,7 @@ export function CreateRestaurantAdminForm({
 
   const name = watch("name");
   const slug = watch("slug");
+  const whatsapp = watch("whatsapp");
   const planId = watch("planId");
   const accessType = watch("accessType");
   const ownerName = watch("ownerName");
@@ -220,8 +224,26 @@ export function CreateRestaurantAdminForm({
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="whatsapp">WhatsApp do responsável</Label>
-            <Input id="whatsapp" placeholder="(11) 99999-9999" {...register("whatsapp")} />
+            <div className="flex items-center justify-between gap-2">
+              <Label htmlFor="whatsapp">WhatsApp do responsável</Label>
+              <label className="flex cursor-pointer items-center gap-1.5 text-xs text-muted-foreground">
+                <Checkbox
+                  checked={addWhatsappLater}
+                  onCheckedChange={(checked) => {
+                    const later = checked === true;
+                    setAddWhatsappLater(later);
+                    if (later) setValue("whatsapp", "");
+                  }}
+                />
+                Adicionar depois
+              </label>
+            </div>
+            <Input
+              id="whatsapp"
+              placeholder="(11) 99999-9999"
+              disabled={addWhatsappLater}
+              {...register("whatsapp")}
+            />
             {errors.whatsapp && <p className="text-xs text-destructive">{errors.whatsapp.message}</p>}
           </div>
 
@@ -368,6 +390,12 @@ export function CreateRestaurantAdminForm({
               <div>
                 <dt className="text-xs text-muted-foreground">Responsável</dt>
                 <dd className="font-medium">{ownerName || "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-muted-foreground">WhatsApp</dt>
+                <dd className="font-medium">
+                  {whatsapp ? formatWhatsappDisplay(whatsapp) : "Adicionar depois"}
+                </dd>
               </div>
               <div>
                 <dt className="text-xs text-muted-foreground">Tipo de acesso</dt>

@@ -166,7 +166,9 @@ export async function createRestaurantByAdminAction(
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
   const data = parsed.data;
   const slug = slugifyName(data.slug) || slugifyName(data.name);
-  const whatsapp = onlyDigits(data.whatsapp);
+  // "Adicionar depois": nunca grava string vazia/placeholder — só dígitos
+  // reais ou `null`.
+  const whatsapp = data.whatsapp.trim() ? onlyDigits(data.whatsapp) : null;
 
   const db = createServiceRoleClient();
 
@@ -183,17 +185,19 @@ export async function createRestaurantByAdminAction(
     return { error: "Este e-mail já possui uma conta no VSFood.", existingProfile: existingByEmail };
   }
 
-  const { data: existingByWhatsapp, error: whatsappLookupError } = await db
-    .from("profiles")
-    .select("id")
-    .eq("whatsapp", whatsapp)
-    .maybeSingle();
-  if (whatsappLookupError) {
-    log("profiles whatsapp lookup failed", whatsappLookupError);
-    return { error: `Não foi possível verificar o WhatsApp informado. Detalhe: "${whatsappLookupError.message}".` };
-  }
-  if (existingByWhatsapp) {
-    return { error: "Este WhatsApp já está em uso por outra conta no VSFood." };
+  if (whatsapp) {
+    const { data: existingByWhatsapp, error: whatsappLookupError } = await db
+      .from("profiles")
+      .select("id")
+      .eq("whatsapp", whatsapp)
+      .maybeSingle();
+    if (whatsappLookupError) {
+      log("profiles whatsapp lookup failed", whatsappLookupError);
+      return { error: `Não foi possível verificar o WhatsApp informado. Detalhe: "${whatsappLookupError.message}".` };
+    }
+    if (existingByWhatsapp) {
+      return { error: "Este WhatsApp já está em uso por outra conta no VSFood." };
+    }
   }
 
   let ownerId: string;
