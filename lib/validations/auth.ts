@@ -18,14 +18,12 @@ const signUpBaseFields = {
 const passwordsMatch = (data: { password: string; confirmPassword: string }) => data.password === data.confirmPassword;
 const passwordMismatch = { message: "As senhas não coincidem", path: ["confirmPassword"] };
 
-// Usado pelo formulário de cadastro no client (sem `role`, que é definido pela página).
+// Cadastro público: sempre cria `customer`. Criação de restaurant_owner só
+// acontece pelo admin (lib/actions/admin/create-restaurant.ts), com service role.
 export const signUpFormSchema = z.object(signUpBaseFields).refine(passwordsMatch, passwordMismatch);
 export type SignUpFormInput = z.infer<typeof signUpFormSchema>;
 
-// Usado pela Server Action (inclui `role`, definido no servidor a partir do contexto da página).
-export const signUpSchema = z
-  .object({ ...signUpBaseFields, role: z.enum(["customer", "restaurant_owner"]) })
-  .refine(passwordsMatch, passwordMismatch);
+export const signUpSchema = signUpFormSchema;
 export type SignUpInput = z.infer<typeof signUpSchema>;
 
 export const loginSchema = z.object({

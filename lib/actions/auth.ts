@@ -25,15 +25,17 @@ function appUrl(): string {
 export async function signUpAction(input: SignUpInput): Promise<ActionResult & { checkEmail?: boolean }> {
   const parsed = signUpSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos" };
-  const { name, whatsapp, email, password, role } = parsed.data;
-  const destination = role === "restaurant_owner" ? "/painel/criar-loja" : "/minha-conta";
+  const { name, whatsapp, email, password } = parsed.data;
+  // Cadastro público sempre cria `customer` — role de restaurant_owner só é
+  // atribuída via app_metadata pelo admin (createUser com service role).
+  const destination = "/minha-conta";
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      data: { name, whatsapp: onlyDigits(whatsapp), role },
+      data: { name, whatsapp: onlyDigits(whatsapp) },
       emailRedirectTo: `${appUrl()}/auth/callback?next=${destination}`,
     },
   });
@@ -96,7 +98,7 @@ export async function loginAction(
 export async function signOutAction(): Promise<void> {
   const supabase = await createClient();
   await supabase.auth.signOut();
-  redirect("/login");
+  redirect("/");
 }
 
 export async function requestPasswordResetAction(input: ForgotPasswordInput): Promise<ActionResult> {

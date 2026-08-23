@@ -13,7 +13,7 @@ import { signUpAction } from "@/lib/actions/auth";
 import { GoogleAuthButton } from "./google-auth-button";
 import { AuthDivider } from "./auth-divider";
 
-export function SignUpForm({ intent = "customer" }: { intent?: "customer" | "restaurant_owner" }) {
+export function SignUpForm() {
   const [serverError, setServerError] = useState<string | null>(null);
   const [checkEmail, setCheckEmail] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -27,7 +27,7 @@ export function SignUpForm({ intent = "customer" }: { intent?: "customer" | "res
     setServerError(null);
     setLoading(true);
     try {
-      const result = await signUpAction({ ...values, role: intent });
+      const result = await signUpAction(values);
       if (result?.error) {
         setServerError(result.error);
       } else if (result?.checkEmail) {
@@ -54,12 +54,8 @@ export function SignUpForm({ intent = "customer" }: { intent?: "customer" | "res
 
   return (
     <div className="space-y-5">
-      {intent === "customer" && (
-        <>
-          <GoogleAuthButton />
-          <AuthDivider />
-        </>
-      )}
+      <GoogleAuthButton />
+      <AuthDivider />
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div className="space-y-1.5">
