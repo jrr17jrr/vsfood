@@ -34,13 +34,25 @@ export async function getActivePlansWithFeatures(): Promise<MarketingPlan[]> {
   return plans.map((p) => ({ ...p, features: featuresByPlan.get(p.id) ?? [] }));
 }
 
-export type DemoRestaurant = { slug: string; name: string };
+export type DemoRestaurant = {
+  slug: string;
+  name: string;
+  description: string | null;
+  cuisine_type: string | null;
+  logo_url: string | null;
+  banner_url: string | null;
+};
 
+/**
+ * Busca a loja marcada como `is_demo` no banco (a mais antiga, se houver mais
+ * de uma) — nunca por nome. Se nenhuma loja estiver marcada como demo, a home
+ * simplesmente não mostra a seção (ver DemoSection), sem link quebrado.
+ */
 export async function getDemoRestaurant(): Promise<DemoRestaurant | null> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("restaurants")
-    .select("slug, name")
+    .select("slug, name, description, cuisine_type, logo_url, banner_url")
     .eq("is_demo", true)
     .order("created_at", { ascending: true })
     .limit(1)

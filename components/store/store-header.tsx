@@ -19,21 +19,24 @@ export function StoreHeader({
   return (
     <div>
       {/*
-        aspect-ratio em vez de altura fixa: a arte inteira do banner cabe no
-        container em qualquer largura de tela. object-contain no mobile evita
-        cortar texto/elementos importantes de uma arte larga num viewport
-        estreito; a partir de sm a proporção já favorece object-cover sem
-        recorte agressivo. max-h evita o banner ficar gigante em telas muito
-        largas (o container é full-bleed, sem max-width).
+        Ratio por breakpoint em vez de um único aspect-ratio: no mobile
+        (< sm) um container mais largo que alto (ex: 8/3) espreme demais uma
+        arte horizontal com pouca altura útil — aspect-[3/2] dá mais altura
+        pra ler a arte sem ficar achatado. object-cover + object-center (em
+        vez de object-contain) prioriza o centro da arte, que é onde a marca/
+        texto principal normalmente está, sem barras vazias de contain. A
+        partir de sm a proporção mais larga (8/3) já cabe bem com cover.
+        max-h evita o banner ficar gigante em telas muito largas (o container
+        é full-bleed, sem max-width).
       */}
-      <div className="relative aspect-[8/3] w-full overflow-hidden bg-muted sm:max-h-[480px]">
+      <div className="relative aspect-[3/2] w-full overflow-hidden bg-muted sm:aspect-[8/3] sm:max-h-[480px]">
         {restaurant.banner_url ? (
           <Image
             src={restaurant.banner_url}
             alt=""
             fill
             sizes="100vw"
-            className="object-contain sm:object-cover"
+            className="object-cover object-center"
             priority
           />
         ) : (
@@ -42,7 +45,7 @@ export function StoreHeader({
       </div>
 
       <div className="mx-auto max-w-4xl px-4">
-        <div className="-mt-10 flex items-end gap-4 sm:-mt-12">
+        <div className="-mt-12 flex items-end gap-4">
           <div className="relative size-20 shrink-0 overflow-hidden rounded-2xl border-4 border-background bg-card p-2 shadow-md sm:size-24">
             {restaurant.logo_url ? (
               <Image src={restaurant.logo_url} alt={restaurant.name} fill sizes="96px" className="object-contain" />

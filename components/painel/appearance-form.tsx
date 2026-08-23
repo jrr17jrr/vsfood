@@ -113,12 +113,12 @@ export function AppearanceForm({ restaurant }: { restaurant: Restaurant }) {
           <button
             type="button"
             onClick={() => bannerInputRef.current?.click()}
-            className="relative mt-2 flex aspect-[8/3] w-full items-center justify-center overflow-hidden rounded-2xl border border-dashed bg-muted"
+            className="relative mt-2 flex aspect-[3/2] w-full items-center justify-center overflow-hidden rounded-2xl border border-dashed bg-muted sm:aspect-[8/3]"
           >
             {uploadingBanner ? (
               <Loader2 className="size-5 animate-spin text-muted-foreground" />
             ) : bannerUrl ? (
-              <Image src={bannerUrl} alt="" fill sizes="400px" className="object-contain sm:object-cover" />
+              <Image src={bannerUrl} alt="" fill sizes="400px" className="object-cover object-center" />
             ) : (
               <ImagePlus className="size-5 text-muted-foreground" />
             )}
