@@ -62,12 +62,22 @@ export const requireRestaurantMembership = cache(async (): Promise<{
   isAdminView: boolean;
 }> => {
   const profile = await getCurrentProfile();
-  if (!profile) redirect("/login");
-  if (profile.role !== "restaurant_owner" && profile.role !== "admin") redirect("/");
+  if (!profile) {
+    console.error("[requireRestaurantMembership] sem sessão — redirecionando pra /login");
+    redirect("/login");
+  }
+  if (profile.role !== "restaurant_owner" && profile.role !== "admin") {
+    console.error(`[requireRestaurantMembership] user=${profile.id} role="${profile.role}" não é restaurant_owner nem admin — redirecionando pra /`);
+    redirect("/");
+  }
 
   if (profile.role === "admin") {
     const adminViewRestaurantId = await getAdminViewRestaurantId();
-    if (!adminViewRestaurantId) redirect("/admin");
+    if (!adminViewRestaurantId) {
+      console.error(`[requireRestaurantMembership] admin=${profile.id} sem Modo Admin ativo — redirecionando pra /admin`);
+      redirect("/admin");
+    }
+    console.error(`[requireRestaurantMembership] admin=${profile.id} Modo Admin restaurantId=${adminViewRestaurantId}`);
     return { profile, restaurantId: adminViewRestaurantId, restaurantRole: "owner", isAdminView: true };
   }
 
@@ -79,7 +89,13 @@ export const requireRestaurantMembership = cache(async (): Promise<{
     .limit(1)
     .maybeSingle();
 
-  if (!membership) redirect("/sem-loja");
+  if (!membership) {
+    console.error(`[requireRestaurantMembership] user=${profile.id} role="${profile.role}" sem linha em restaurant_users — redirecionando pra /sem-loja`);
+    redirect("/sem-loja");
+  }
 
+  console.error(
+    `[requireRestaurantMembership] user=${profile.id} membership restaurantId=${membership.restaurant_id} role=${membership.role}`,
+  );
   return { profile, restaurantId: membership.restaurant_id, restaurantRole: membership.role, isAdminView: false };
 });

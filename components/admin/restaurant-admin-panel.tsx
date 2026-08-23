@@ -42,8 +42,10 @@ import {
 import { startAdminViewAction } from "@/lib/actions/admin/admin-view";
 import { getAccessDescriptor } from "@/lib/restaurant-status";
 import { RestaurantStatusBadge } from "@/components/shared/restaurant-status-badge";
+import { AccessDiagnosticsCard } from "@/components/admin/access-diagnostics-card";
 import type { AdminRestaurantDetail } from "@/lib/data/admin";
 import type { ActivePlanOption } from "@/lib/data/plans";
+import type { AccessDiagnostics } from "@/lib/data/admin-diagnostics";
 import type { AccessType, RestaurantStatus } from "@/types/database";
 
 const STATUS_OPTIONS: { value: RestaurantStatus; label: string }[] = [
@@ -62,9 +64,11 @@ const ACCESS_TYPE_OPTIONS: { value: AccessType; label: string }[] = [
 export function RestaurantAdminPanel({
   restaurant,
   plans,
+  diagnostics,
 }: {
   restaurant: AdminRestaurantDetail;
   plans: ActivePlanOption[];
+  diagnostics: AccessDiagnostics;
 }) {
   const router = useRouter();
   const [trialExpiresAt, setTrialExpiresAt] = useState(restaurant.trial_expires_at.slice(0, 10));
@@ -373,6 +377,8 @@ export function RestaurantAdminPanel({
           Redefinir acesso (enviar link de senha)
         </Button>
       </div>
+
+      <AccessDiagnosticsCard restaurantId={restaurant.id} diagnostics={diagnostics} />
 
       <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-5">
         <h2 className="font-semibold text-destructive">Zona de risco</h2>

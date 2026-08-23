@@ -187,6 +187,66 @@ export async function updateOwnerWhatsappAction(ownerId: string, restaurantId: s
   return {};
 }
 
+/**
+ * Corrige o acesso do responsável de uma loja quando o diagnóstico mostrar
+ * inconsistência (profiles.role errado, ou restaurant_users ausente/errado).
+ * Nunca cria usuário novo, nunca mexe em senha, nunca move o vínculo de um
+ * usuário que já é dono de OUTRO restaurante (retorna erro nesse caso em vez
+ * de sobrescrever silenciosamente).
+ */
+export async function fixOwnerAccessAction(
+  restaurantId: string,
+  input: { ownerId?: string; email?: string },
+): Promise<Result> {
+  await requireAdmin();
+  const supabase = await createClient();
+
+  let targetId = input.ownerId ?? null;
+  if (!targetId) {
+    const email = input.email?.trim();
+    if (!email) return { error: "Informe o e-mail do responsável para localizar a conta." };
+    const { data: found } = await supabase.from("profiles").select("id").eq("email", email).maybeSingle();
+    if (!found) return { error: "Nenhuma conta encontrada com este e-mail no VSFood." };
+    targetId = found.id;
+  }
+
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", targetId).maybeSingle();
+  if (!profile) return { error: "Perfil não encontrado para este usuário (pode ter sido removido)." };
+  if (profile.role === "admin") {
+    return { error: "Esta conta é de um administrador e não pode virar responsável por restaurante." };
+  }
+
+  if (profile.role !== "restaurant_owner") {
+    const { error: roleError } = await supabase.from("profiles").update({ role: "restaurant_owner" }).eq("id", targetId);
+    if (roleError) return { error: `Não foi possível corrigir profiles.role. Detalhe: "${roleError.message}".` };
+  }
+
+  const { data: existingLink } = await supabase
+    .from("restaurant_users")
+    .select("id, restaurant_id, role")
+    .eq("user_id", targetId)
+    .maybeSingle();
+
+  if (existingLink && existingLink.restaurant_id !== restaurantId) {
+    return {
+      error: `Esta conta já está vinculada a outro restaurante (id ${existingLink.restaurant_id}). Verifique manualmente antes de vincular aqui.`,
+    };
+  }
+
+  if (existingLink) {
+    if (existingLink.role !== "owner") {
+      const { error } = await supabase.from("restaurant_users").update({ role: "owner" }).eq("id", existingLink.id);
+      if (error) return { error: `Não foi possível corrigir o vínculo. Detalhe: "${error.message}".` };
+    }
+  } else {
+    const { error } = await supabase.from("restaurant_users").insert({ restaurant_id: restaurantId, user_id: targetId, role: "owner" });
+    if (error) return { error: `Não foi possível criar o vínculo. Detalhe: "${error.message}".` };
+  }
+
+  revalidateAdmin(restaurantId);
+  return {};
+}
+
 export async function resetOwnerAccessAction(ownerEmail: string): Promise<Result> {
   await requireAdmin();
   const supabase = await createClient();
