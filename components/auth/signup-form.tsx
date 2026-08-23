@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { signUpFormSchema, type SignUpFormInput } from "@/lib/validations/auth";
 import { signUpAction } from "@/lib/actions/auth";
@@ -78,13 +79,13 @@ export function SignUpForm() {
 
         <div className="space-y-1.5">
           <Label htmlFor="password">Senha</Label>
-          <Input id="password" type="password" {...register("password")} />
+          <PasswordInput id="password" {...register("password")} />
           {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
         </div>
 
         <div className="space-y-1.5">
           <Label htmlFor="confirmPassword">Confirmar senha</Label>
-          <Input id="confirmPassword" type="password" {...register("confirmPassword")} />
+          <PasswordInput id="confirmPassword" {...register("confirmPassword")} />
           {errors.confirmPassword && <p className="text-xs text-destructive">{errors.confirmPassword.message}</p>}
         </div>
 

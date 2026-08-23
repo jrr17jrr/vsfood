@@ -15,7 +15,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,14 +30,17 @@ import {
   deleteRestaurantAction,
   extendTrialAction,
   resetOwnerAccessAction,
+  setAccessTypeAction,
   setTrialExpiryAction,
   updateOwnerEmailAction,
   updateRestaurantPlanAction,
   updateRestaurantStatusAction,
 } from "@/lib/actions/admin/restaurants";
-import { getEffectiveStatus } from "@/lib/admin-status";
+import { getAccessDescriptor } from "@/lib/restaurant-status";
+import { RestaurantStatusBadge } from "@/components/shared/restaurant-status-badge";
 import type { AdminRestaurantDetail } from "@/lib/data/admin";
-import type { RestaurantStatus } from "@/types/database";
+import type { ActivePlanOption } from "@/lib/data/plans";
+import type { AccessType, RestaurantStatus } from "@/types/database";
 
 const STATUS_OPTIONS: { value: RestaurantStatus; label: string }[] = [
   { value: "trial", label: "Em teste" },
@@ -47,9 +49,20 @@ const STATUS_OPTIONS: { value: RestaurantStatus; label: string }[] = [
   { value: "suspended", label: "Suspenso" },
 ];
 
-export function RestaurantAdminPanel({ restaurant }: { restaurant: AdminRestaurantDetail }) {
+const ACCESS_TYPE_OPTIONS: { value: AccessType; label: string }[] = [
+  { value: "trial", label: "Teste grátis" },
+  { value: "subscriber", label: "Assinante" },
+  { value: "demo", label: "Demonstração" },
+];
+
+export function RestaurantAdminPanel({
+  restaurant,
+  plans,
+}: {
+  restaurant: AdminRestaurantDetail;
+  plans: ActivePlanOption[];
+}) {
   const router = useRouter();
-  const [plan, setPlan] = useState(restaurant.plan);
   const [trialExpiresAt, setTrialExpiresAt] = useState(restaurant.trial_expires_at.slice(0, 10));
   const [newEmail, setNewEmail] = useState(restaurant.owner_email ?? "");
   const [loading, setLoading] = useState(false);
@@ -69,13 +82,24 @@ export function RestaurantAdminPanel({ restaurant }: { restaurant: AdminRestaura
     }
   }
 
-  async function handleSavePlan() {
+  async function handlePlanChange(planId: string) {
     setLoading(true);
-    const result = await updateRestaurantPlanAction(restaurant.id, plan);
+    const result = await updateRestaurantPlanAction(restaurant.id, planId);
     setLoading(false);
     if (result?.error) toast.error(result.error);
     else {
       toast.success("Plano atualizado.");
+      refresh();
+    }
+  }
+
+  async function handleAccessTypeChange(accessType: AccessType) {
+    setLoading(true);
+    const result = await setAccessTypeAction(restaurant.id, accessType);
+    setLoading(false);
+    if (result?.error) toast.error(result.error);
+    else {
+      toast.success("Tipo de acesso atualizado.");
       refresh();
     }
   }
@@ -134,7 +158,7 @@ export function RestaurantAdminPanel({ restaurant }: { restaurant: AdminRestaura
     router.push("/admin/restaurantes");
   }
 
-  const effective = getEffectiveStatus(restaurant);
+  const descriptor = getAccessDescriptor(restaurant, restaurant.plan_name);
 
   return (
     <div className="space-y-6">
@@ -147,7 +171,7 @@ export function RestaurantAdminPanel({ restaurant }: { restaurant: AdminRestaura
             </Link>
           </p>
         </div>
-        <Badge variant={effective === "active" ? "default" : "secondary"}>{effective}</Badge>
+        <RestaurantStatusBadge descriptor={descriptor} />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
@@ -166,35 +190,64 @@ export function RestaurantAdminPanel({ restaurant }: { restaurant: AdminRestaura
       </div>
 
       <div className="rounded-2xl border bg-card p-5">
-        <h2 className="font-semibold">Status e plano</h2>
-        <div className="mt-3 grid gap-4 sm:grid-cols-2">
+        <h2 className="font-semibold">Tipo de acesso e plano</h2>
+        <div className="mt-3 grid gap-4 sm:grid-cols-3">
           <div className="space-y-1.5">
-            <Label>Status</Label>
-            <Select value={restaurant.status} onValueChange={(v) => handleStatusChange(v as RestaurantStatus)}>
+            <Label>Tipo de acesso</Label>
+            <Select value={restaurant.access_type} onValueChange={(v) => handleAccessTypeChange(v as AccessType)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {STATUS_OPTIONS.map((s) => (
-                  <SelectItem key={s.value} value={s.value}>
-                    {s.label}
+                {ACCESS_TYPE_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label>Plano</Label>
-            <div className="flex gap-2">
-              <Input value={plan} onChange={(e) => setPlan(e.target.value)} />
-              <Button variant="outline" onClick={handleSavePlan} disabled={loading}>
-                Salvar
-              </Button>
-            </div>
+            <Label>Plano atual</Label>
+            <Select value={restaurant.plan_id ?? undefined} onValueChange={handlePlanChange}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecionar plano" />
+              </SelectTrigger>
+              <SelectContent>
+                {plans.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
+          {restaurant.access_type !== "demo" && (
+            <div className="space-y-1.5">
+              <Label>Status</Label>
+              <Select value={restaurant.status} onValueChange={(v) => handleStatusChange(v as RestaurantStatus)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {STATUS_OPTIONS.map((s) => (
+                    <SelectItem key={s.value} value={s.value}>
+                      {s.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
+        {restaurant.access_type === "demo" && (
+          <p className="mt-3 text-sm text-muted-foreground">
+            Loja de demonstração: não expira, não é cobrada e não entra no MRR.
+          </p>
+        )}
       </div>
 
+      {restaurant.access_type === "trial" && (
       <div className="rounded-2xl border bg-card p-5">
         <h2 className="font-semibold">Teste grátis</h2>
         <p className="mt-1 text-sm text-muted-foreground">Vence em {formatDateTime(restaurant.trial_expires_at)}</p>
@@ -219,6 +272,7 @@ export function RestaurantAdminPanel({ restaurant }: { restaurant: AdminRestaura
           </Button>
         </div>
       </div>
+      )}
 
       <div className="rounded-2xl border bg-card p-5">
         <h2 className="font-semibold">Acesso do responsável</h2>

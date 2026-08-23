@@ -19,10 +19,11 @@ export function Hero() {
             Feito para restaurantes, lanchonetes e delivery
           </span>
           <h1 className="mt-5 text-4xl font-bold tracking-tight text-balance sm:text-5xl">
-            Seu restaurante pronto para receber pedidos online.
+            Seu restaurante online, do seu jeito.
           </h1>
           <p className="mt-5 text-lg text-muted-foreground text-pretty">
-            Crie seu cardápio, receba pedidos e gerencie tudo em um só lugar.
+            Receba pedidos, gerencie seu cardápio e tenha sua própria loja online em um só
+            lugar.
           </p>
           <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2">
             {badges.map((b) => (
@@ -33,11 +34,11 @@ export function Hero() {
             ))}
           </ul>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Button size="lg" asChild>
-              <Link href="/cadastro?tipo=restaurante">Começar grátis</Link>
-            </Button>
             <Button size="lg" variant="outline" asChild>
-              <Link href="/loja/dudu-burger">Ver demonstração</Link>
+              <Link href="#demonstracao">Ver demonstração</Link>
+            </Button>
+            <Button size="lg" asChild>
+              <Link href="/cadastro?tipo=restaurante">Quero minha loja</Link>
             </Button>
           </div>
         </div>

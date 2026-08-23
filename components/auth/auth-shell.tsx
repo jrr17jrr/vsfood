@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { VsfoodLogo } from "@/components/layout/vsfood-logo";
 import { PublicFooter } from "@/components/layout/public-footer";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 
 export function AuthShell({
   title,
@@ -13,6 +14,9 @@ export function AuthShell({
 }) {
   return (
     <>
+      <div className="flex justify-end px-4 pt-4">
+        <ThemeToggle />
+      </div>
       <main className="flex flex-1 items-center justify-center px-4 py-12">
         <div className="w-full max-w-sm">
           <Link href="/" className="mb-8 flex justify-center">

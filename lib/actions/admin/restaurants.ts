@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
-import type { RestaurantStatus } from "@/types/database";
+import type { AccessType, RestaurantStatus } from "@/types/database";
 
 type Result = { error?: string };
 
@@ -23,11 +23,71 @@ export async function updateRestaurantStatusAction(id: string, status: Restauran
   return {};
 }
 
-export async function updateRestaurantPlanAction(id: string, plan: string): Promise<Result> {
+export async function updateRestaurantPlanAction(id: string, planId: string): Promise<Result> {
   await requireAdmin();
   const supabase = await createClient();
-  const { error } = await supabase.from("restaurants").update({ plan }).eq("id", id);
+
+  const { data: plan } = await supabase.from("plans").select("code").eq("id", planId).maybeSingle();
+  if (!plan) return { error: "Plano não encontrado." };
+
+  const { error } = await supabase.from("restaurants").update({ plan_id: planId, plan: plan.code }).eq("id", id);
   if (error) return { error: "Não foi possível atualizar o plano." };
+  revalidateAdmin(id);
+  return {};
+}
+
+export async function setAccessTypeAction(id: string, accessType: AccessType): Promise<Result> {
+  await requireAdmin();
+  const supabase = await createClient();
+
+  if (accessType === "demo") {
+    const { error } = await supabase
+      .from("restaurants")
+      .update({ access_type: "demo", is_demo: true, status: "active" })
+      .eq("id", id);
+    if (error) return { error: "Não foi possível marcar a loja como demonstração." };
+    revalidateAdmin(id);
+    return {};
+  }
+
+  if (accessType === "trial") {
+    const now = new Date();
+    const expires = new Date(now);
+    expires.setDate(expires.getDate() + 7);
+    const { error } = await supabase
+      .from("restaurants")
+      .update({
+        access_type: "trial",
+        is_demo: false,
+        status: "trial",
+        trial_started_at: now.toISOString(),
+        trial_expires_at: expires.toISOString(),
+      })
+      .eq("id", id);
+    if (error) return { error: "Não foi possível transformar em teste grátis." };
+    revalidateAdmin(id);
+    return {};
+  }
+
+  const { error } = await supabase
+    .from("restaurants")
+    .update({ access_type: "subscriber", is_demo: false, status: "active" })
+    .eq("id", id);
+  if (error) return { error: "Não foi possível transformar em assinante." };
+  revalidateAdmin(id);
+  return {};
+}
+
+export async function toggleDemoAction(id: string, isDemo: boolean): Promise<Result> {
+  await requireAdmin();
+  const supabase = await createClient();
+
+  const update = isDemo
+    ? { is_demo: true, access_type: "demo" as AccessType, status: "active" as RestaurantStatus }
+    : { is_demo: false, access_type: "subscriber" as AccessType };
+
+  const { error } = await supabase.from("restaurants").update(update).eq("id", id);
+  if (error) return { error: "Não foi possível atualizar a demonstração." };
   revalidateAdmin(id);
   return {};
 }

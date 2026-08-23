@@ -22,6 +22,7 @@ export type OrderStatus =
 export type PaymentStatus = "pending" | "approved" | "rejected" | "cancelled" | "refunded";
 export type PaymentMethod = "pix_online" | "card_online" | "pix_manual" | "cash" | "card_on_delivery";
 export type CouponType = "percent" | "fixed";
+export type AccessType = "trial" | "subscriber" | "demo";
 
 type Timestamps = {
   created_at: string;
@@ -61,10 +62,50 @@ export type Restaurant = Timestamps & {
   trial_started_at: string;
   trial_expires_at: string;
   plan: string;
+  plan_id: string | null;
+  access_type: AccessType;
+  is_demo: boolean;
   orders_paused: boolean;
   min_order_value: number;
   estimated_time_minutes: number;
   next_order_number: number;
+};
+
+export type Plan = Timestamps & {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  complement_text: string | null;
+  cta_label: string;
+  price_monthly: number | null;
+  price_yearly: number | null;
+  is_featured: boolean;
+  is_active: boolean;
+  display_order: number;
+  trial_days_default: number;
+};
+
+export type PlanFeature = Timestamps & {
+  id: string;
+  key: string;
+  name: string;
+  description: string | null;
+  is_active: boolean;
+  display_order: number;
+};
+
+export type PlanFeatureLink = {
+  plan_id: string;
+  feature_id: string;
+  created_at: string;
+};
+
+export type PlanLimit = Timestamps & {
+  id: string;
+  plan_id: string;
+  key: string;
+  value: number | null;
 };
 
 export type RestaurantUser = {
@@ -321,6 +362,10 @@ export type Database = {
       >;
       mercadopago_connections: TableDef<MercadoPagoConnection, { restaurant_id: string }>;
       reviews: TableDef<Review, { customer_id: string; restaurant_id: string; order_id: string; rating: number }>;
+      plans: TableDef<Plan, { code: string; name: string }>;
+      plan_features: TableDef<PlanFeature, { key: string; name: string }>;
+      plan_feature_links: TableDef<PlanFeatureLink, { plan_id: string; feature_id: string }>;
+      plan_limits: TableDef<PlanLimit, { plan_id: string; key: string }>;
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

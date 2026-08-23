@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { resetPasswordSchema, type ResetPasswordInput } from "@/lib/validations/auth";
 import { updatePasswordAction } from "@/lib/actions/auth";
@@ -38,13 +38,13 @@ export function ResetPasswordForm() {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="space-y-1.5">
         <Label htmlFor="password">Nova senha</Label>
-        <Input id="password" type="password" {...register("password")} />
+        <PasswordInput id="password" {...register("password")} />
         {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
       </div>
 
       <div className="space-y-1.5">
         <Label htmlFor="confirmPassword">Confirmar nova senha</Label>
-        <Input id="confirmPassword" type="password" {...register("confirmPassword")} />
+        <PasswordInput id="confirmPassword" {...register("confirmPassword")} />
         {errors.confirmPassword && <p className="text-xs text-destructive">{errors.confirmPassword.message}</p>}
       </div>
 

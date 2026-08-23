@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { VsfoodLogo } from "./vsfood-logo";
 import { DesktopUserMenu, MobileMenu, type HeaderProfile } from "./header-auth-controls";
+import { ThemeToggle } from "./theme-toggle";
 import { getCurrentProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
@@ -48,6 +49,7 @@ export async function PublicHeader() {
           </Link>
         </nav>
         <div className="flex items-center gap-2">
+          <ThemeToggle />
           {headerProfile ? (
             <div className="hidden md:block">
               <DesktopUserMenu profile={headerProfile} storeSlug={storeSlug} />

@@ -2,16 +2,17 @@
 
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth";
-import { createServiceRoleClient } from "@/lib/supabase/server";
+import { createServiceRoleClient, createClient } from "@/lib/supabase/server";
 import { slugifyName } from "@/lib/slug";
 import { onlyDigits } from "@/lib/format";
 import {
+  checkSlugSchema,
   createRestaurantByAdminSchema,
   linkExistingOwnerSchema,
   type CreateRestaurantByAdminInput,
   type LinkExistingOwnerInput,
 } from "@/lib/validations/admin-restaurant";
-import type { RestaurantStatus } from "@/types/database";
+import type { AccessType, RestaurantStatus } from "@/types/database";
 
 type Db = ReturnType<typeof createServiceRoleClient>;
 
@@ -24,10 +25,30 @@ type CreateResult =
 type ProvisionInput = {
   name: string;
   slug: string;
-  plan: string;
+  planId: string;
+  accessType: AccessType;
   trialDays: number;
   status: RestaurantStatus;
 };
+
+function accessFields(input: Pick<ProvisionInput, "accessType" | "trialDays" | "status">) {
+  if (input.accessType === "demo") {
+    return { access_type: "demo" as const, is_demo: true, status: "active" as RestaurantStatus };
+  }
+  if (input.accessType === "trial") {
+    const trialStartedAt = new Date();
+    const trialExpiresAt = new Date(trialStartedAt);
+    trialExpiresAt.setDate(trialExpiresAt.getDate() + input.trialDays);
+    return {
+      access_type: "trial" as const,
+      is_demo: false,
+      status: "trial" as RestaurantStatus,
+      trial_started_at: trialStartedAt.toISOString(),
+      trial_expires_at: trialExpiresAt.toISOString(),
+    };
+  }
+  return { access_type: "subscriber" as const, is_demo: false, status: input.status };
+}
 
 async function provisionRestaurant(
   db: Db,
@@ -37,19 +58,17 @@ async function provisionRestaurant(
   const { data: slugTaken } = await db.from("restaurants").select("id").eq("slug", input.slug).maybeSingle();
   if (slugTaken) return { error: "Este slug já está em uso." };
 
-  const trialStartedAt = new Date();
-  const trialExpiresAt = new Date(trialStartedAt);
-  trialExpiresAt.setDate(trialExpiresAt.getDate() + input.trialDays);
+  const { data: plan } = await db.from("plans").select("code").eq("id", input.planId).maybeSingle();
+  if (!plan) return { error: "Plano não encontrado." };
 
   const { data: restaurant, error: restaurantError } = await db
     .from("restaurants")
     .insert({
       name: input.name,
       slug: input.slug,
-      status: input.status,
-      plan: input.plan,
-      trial_started_at: trialStartedAt.toISOString(),
-      trial_expires_at: trialExpiresAt.toISOString(),
+      plan_id: input.planId,
+      plan: plan.code,
+      ...accessFields(input),
     })
     .select("id")
     .single();
@@ -64,14 +83,24 @@ async function provisionRestaurant(
     .insert({ restaurant_id: restaurant.id, user_id: ownerId, role: "owner" });
   if (membershipError) return { error: "Não foi possível vincular o responsável ao restaurante." };
 
-  const subscriptionStatus = input.status === "trial" ? "trial" : "active";
+  const subscriptionStatus = input.accessType === "trial" ? "trial" : "active";
   await db.from("subscriptions").insert({
     restaurant_id: restaurant.id,
-    plan: input.plan,
+    plan: plan.code,
     status: subscriptionStatus,
   });
 
   return { restaurantId: restaurant.id };
+}
+
+export async function checkSlugAvailabilityAction(slug: string): Promise<{ available: boolean }> {
+  await requireAdmin();
+  const parsed = checkSlugSchema.safeParse({ slug });
+  if (!parsed.success) return { available: false };
+
+  const supabase = await createClient();
+  const { data } = await supabase.from("restaurants").select("id").eq("slug", parsed.data.slug).maybeSingle();
+  return { available: !data };
 }
 
 export async function createRestaurantByAdminAction(
@@ -112,7 +141,8 @@ export async function createRestaurantByAdminAction(
   const result = await provisionRestaurant(db, ownerId, {
     name: data.name,
     slug,
-    plan: data.plan,
+    planId: data.planId,
+    accessType: data.accessType,
     trialDays: data.trialDays,
     status: data.status,
   });
@@ -162,7 +192,8 @@ export async function linkExistingOwnerAction(
   const result = await provisionRestaurant(db, profile.id, {
     name: data.name,
     slug,
-    plan: data.plan,
+    planId: data.planId,
+    accessType: data.accessType,
     trialDays: data.trialDays,
     status: data.status,
   });

@@ -18,6 +18,7 @@ import {
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { VsfoodLogo } from "@/components/layout/vsfood-logo";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { signOutAction } from "@/lib/actions/auth";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -65,7 +66,10 @@ export function PainelSidebar({ restaurantName }: { restaurantName: string }) {
       <Link href="/painel" className="mb-1">
         <VsfoodLogo />
       </Link>
-      <p className="mb-6 truncate text-xs text-muted-foreground">{restaurantName}</p>
+      <div className="mb-6 flex items-center justify-between gap-2">
+        <p className="truncate text-xs text-muted-foreground">{restaurantName}</p>
+        <ThemeToggle className="size-7 shrink-0" />
+      </div>
       <NavLinks />
       <form action={signOutAction}>
         <button
@@ -88,27 +92,30 @@ export function PainelMobileNav({ restaurantName }: { restaurantName: string }) 
       <Link href="/painel">
         <VsfoodLogo />
       </Link>
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetTrigger asChild>
-          <Button size="icon" variant="outline">
-            <Menu className="size-5" />
-          </Button>
-        </SheetTrigger>
-        <SheetContent side="left" className="w-64 p-4">
-          <SheetTitle className="sr-only">Menu</SheetTitle>
-          <p className="mb-6 truncate text-xs text-muted-foreground">{restaurantName}</p>
-          <NavLinks onNavigate={() => setOpen(false)} />
-          <form action={signOutAction}>
-            <button
-              type="submit"
-              className="mt-4 flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary"
-            >
-              <LogOut className="size-4" />
-              Sair
-            </button>
-          </form>
-        </SheetContent>
-      </Sheet>
+      <div className="flex items-center gap-1">
+        <ThemeToggle />
+        <Sheet open={open} onOpenChange={setOpen}>
+          <SheetTrigger asChild>
+            <Button size="icon" variant="outline">
+              <Menu className="size-5" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-64 p-4">
+            <SheetTitle className="sr-only">Menu</SheetTitle>
+            <p className="mb-6 truncate text-xs text-muted-foreground">{restaurantName}</p>
+            <NavLinks onNavigate={() => setOpen(false)} />
+            <form action={signOutAction}>
+              <button
+                type="submit"
+                className="mt-4 flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary"
+              >
+                <LogOut className="size-4" />
+                Sair
+              </button>
+            </form>
+          </SheetContent>
+        </Sheet>
+      </div>
     </div>
   );
 }

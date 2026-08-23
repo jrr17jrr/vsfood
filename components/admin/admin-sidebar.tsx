@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Store, LogOut, Menu } from "lucide-react";
+import { LayoutDashboard, Store, Tag, LogOut, Menu } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { VsfoodLogo } from "@/components/layout/vsfood-logo";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { signOutAction } from "@/lib/actions/auth";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import { Button } from "@/components/ui/button";
 const links = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/restaurantes", label: "Restaurantes", icon: Store },
+  { href: "/admin/planos", label: "Planos", icon: Tag },
 ];
 
 function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
@@ -46,7 +48,10 @@ export function AdminSidebar() {
       <Link href="/admin" className="mb-1">
         <VsfoodLogo />
       </Link>
-      <p className="mb-6 text-xs text-muted-foreground">Painel DEV</p>
+      <div className="mb-6 flex items-center justify-between">
+        <p className="text-xs text-muted-foreground">Painel DEV</p>
+        <ThemeToggle className="size-7" />
+      </div>
       <NavLinks />
       <form action={signOutAction}>
         <button
@@ -69,18 +74,21 @@ export function AdminMobileNav() {
       <Link href="/admin">
         <VsfoodLogo />
       </Link>
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetTrigger asChild>
-          <Button size="icon" variant="outline">
-            <Menu className="size-5" />
-          </Button>
-        </SheetTrigger>
-        <SheetContent side="left" className="w-64 p-4">
-          <SheetTitle className="sr-only">Menu</SheetTitle>
-          <p className="mb-6 text-xs text-muted-foreground">Painel DEV</p>
-          <NavLinks onNavigate={() => setOpen(false)} />
-        </SheetContent>
-      </Sheet>
+      <div className="flex items-center gap-1">
+        <ThemeToggle />
+        <Sheet open={open} onOpenChange={setOpen}>
+          <SheetTrigger asChild>
+            <Button size="icon" variant="outline">
+              <Menu className="size-5" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-64 p-4">
+            <SheetTitle className="sr-only">Menu</SheetTitle>
+            <p className="mb-6 text-xs text-muted-foreground">Painel DEV</p>
+            <NavLinks onNavigate={() => setOpen(false)} />
+          </SheetContent>
+        </Sheet>
+      </div>
     </div>
   );
 }

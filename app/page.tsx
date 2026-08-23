@@ -3,7 +3,11 @@ import { PublicFooter } from "@/components/layout/public-footer";
 import { Hero } from "@/components/marketing/hero";
 import { HowItWorks } from "@/components/marketing/how-it-works";
 import { Features } from "@/components/marketing/features";
+import { PanelShowcase } from "@/components/marketing/panel-showcase";
+import { DemoSection } from "@/components/marketing/demo-section";
 import { Pricing } from "@/components/marketing/pricing";
+import { FAQ } from "@/components/marketing/faq";
+import { FinalCTA } from "@/components/marketing/final-cta";
 
 export default function LandingPage() {
   return (
@@ -13,7 +17,11 @@ export default function LandingPage() {
         <Hero />
         <HowItWorks />
         <Features />
+        <PanelShowcase />
+        <DemoSection />
         <Pricing />
+        <FAQ />
+        <FinalCTA />
       </main>
       <PublicFooter />
     </>

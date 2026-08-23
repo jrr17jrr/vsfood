@@ -9,6 +9,13 @@ export async function getRestaurant(restaurantId: string): Promise<Restaurant | 
   return data;
 }
 
+export async function getPlanName(planId: string | null): Promise<string | null> {
+  if (!planId) return null;
+  const supabase = await createClient();
+  const { data } = await supabase.from("plans").select("name").eq("id", planId).maybeSingle();
+  return data?.name ?? null;
+}
+
 export type DashboardStats = {
   ordersToday: number;
   revenueToday: number;
