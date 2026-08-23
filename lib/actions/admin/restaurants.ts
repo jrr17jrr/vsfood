@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
+import { onlyDigits } from "@/lib/format";
 import type { AccessType, RestaurantStatus } from "@/types/database";
 
 type Result = { error?: string };
@@ -132,6 +133,30 @@ export async function updateOwnerEmailAction(ownerId: string, restaurantId: stri
   if (authError) return { error: "Não foi possível alterar o e-mail de acesso." };
 
   await db.from("profiles").update({ email: parsed.data }).eq("id", ownerId);
+  revalidateAdmin(restaurantId);
+  return {};
+}
+
+/**
+ * Aceita string vazia pra "remover" o WhatsApp (grava `null` — nunca string
+ * vazia/placeholder). O responsável pode não ter WhatsApp cadastrado ainda
+ * (ex: loja criada pelo DEV antes de receber o contato definitivo do dono).
+ */
+export async function updateOwnerWhatsappAction(ownerId: string, restaurantId: string, newWhatsapp: string): Promise<Result> {
+  await requireAdmin();
+  const trimmed = newWhatsapp.trim();
+  const digits = trimmed ? onlyDigits(trimmed) : null;
+  if (digits && (digits.length < 10 || digits.length > 11)) {
+    return { error: "WhatsApp inválido." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("profiles").update({ whatsapp: digits }).eq("id", ownerId);
+  if (error) {
+    if (error.code === "23505") return { error: "Este WhatsApp já está em uso por outra conta." };
+    return { error: "Não foi possível alterar o WhatsApp." };
+  }
+
   revalidateAdmin(restaurantId);
   return {};
 }

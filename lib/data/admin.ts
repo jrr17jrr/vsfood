@@ -89,6 +89,7 @@ export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
 export type AdminRestaurantListItem = Restaurant & {
   owner_name: string | null;
   owner_email: string | null;
+  owner_whatsapp: string | null;
   order_count: number;
   plan_name: string | null;
 };
@@ -108,7 +109,7 @@ async function attachOwnersAndCounts(
 
   const ownerIds = [...new Set((memberships ?? []).map((m) => m.user_id))];
   const { data: owners } = ownerIds.length
-    ? await supabase.from("profiles").select("id, name, email").in("id", ownerIds)
+    ? await supabase.from("profiles").select("id, name, email, whatsapp").in("id", ownerIds)
     : { data: [] };
   const ownerByRestaurant = new Map((memberships ?? []).map((m) => [m.restaurant_id, m.user_id]));
   const ownerProfileMap = new Map((owners ?? []).map((o) => [o.id, o]));
@@ -126,6 +127,7 @@ async function attachOwnersAndCounts(
       ...r,
       owner_name: owner?.name ?? null,
       owner_email: owner?.email ?? null,
+      owner_whatsapp: owner?.whatsapp ?? null,
       order_count: countByRestaurant.get(r.id) ?? 0,
       plan_name: r.plan_id ? (planNameById.get(r.plan_id) ?? null) : null,
     };

@@ -33,6 +33,7 @@ import {
   setAccessTypeAction,
   setTrialExpiryAction,
   updateOwnerEmailAction,
+  updateOwnerWhatsappAction,
   updateRestaurantPlanAction,
   updateRestaurantStatusAction,
 } from "@/lib/actions/admin/restaurants";
@@ -65,6 +66,7 @@ export function RestaurantAdminPanel({
   const router = useRouter();
   const [trialExpiresAt, setTrialExpiresAt] = useState(restaurant.trial_expires_at.slice(0, 10));
   const [newEmail, setNewEmail] = useState(restaurant.owner_email ?? "");
+  const [newWhatsapp, setNewWhatsapp] = useState(restaurant.owner_whatsapp ?? "");
   const [loading, setLoading] = useState(false);
 
   function refresh() {
@@ -134,6 +136,18 @@ export function RestaurantAdminPanel({
     if (result?.error) toast.error(result.error);
     else {
       toast.success("E-mail de acesso atualizado.");
+      refresh();
+    }
+  }
+
+  async function handleUpdateWhatsapp() {
+    if (!restaurant.owner_id) return;
+    setLoading(true);
+    const result = await updateOwnerWhatsappAction(restaurant.owner_id, restaurant.id, newWhatsapp);
+    setLoading(false);
+    if (result?.error) toast.error(result.error);
+    else {
+      toast.success("WhatsApp atualizado.");
       refresh();
     }
   }
@@ -283,6 +297,20 @@ export function RestaurantAdminPanel({
           </div>
           <Button variant="outline" onClick={handleUpdateEmail} disabled={loading || !restaurant.owner_id}>
             Alterar e-mail
+          </Button>
+        </div>
+        <div className="mt-3 flex items-end gap-2">
+          <div className="flex-1 space-y-1.5">
+            <Label>WhatsApp</Label>
+            <Input
+              value={newWhatsapp}
+              onChange={(e) => setNewWhatsapp(e.target.value)}
+              placeholder="(11) 99999-9999 — deixe em branco pra remover"
+              disabled={!restaurant.owner_id}
+            />
+          </div>
+          <Button variant="outline" onClick={handleUpdateWhatsapp} disabled={loading || !restaurant.owner_id}>
+            Salvar WhatsApp
           </Button>
         </div>
         <Button variant="outline" className="mt-3" onClick={handleResetAccess} disabled={loading || !restaurant.owner_email}>
