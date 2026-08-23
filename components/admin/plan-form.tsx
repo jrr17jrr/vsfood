@@ -48,7 +48,6 @@ export function PlanForm({ plan, allFeatures }: { plan: PlanDetail | null; allFe
       isFeatured: plan?.is_featured ?? false,
       isActive: plan?.is_active ?? true,
       displayOrder: plan?.display_order ?? 0,
-      trialDaysDefault: plan?.trial_days_default ?? 7,
     },
   });
 
@@ -146,15 +145,9 @@ export function PlanForm({ plan, allFeatures }: { plan: PlanDetail | null; allFe
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="displayOrder">Ordem na página de venda</Label>
-            <Input id="displayOrder" type="number" {...register("displayOrder", { valueAsNumber: true })} />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="trialDaysDefault">Dias de teste padrão</Label>
-            <Input id="trialDaysDefault" type="number" min={0} {...register("trialDaysDefault", { valueAsNumber: true })} />
-          </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="displayOrder">Ordem na página de venda</Label>
+          <Input id="displayOrder" type="number" {...register("displayOrder", { valueAsNumber: true })} />
         </div>
 
         <div className="flex flex-wrap gap-6">

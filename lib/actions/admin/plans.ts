@@ -24,7 +24,6 @@ function toPlanRow(input: PlanInput) {
     is_featured: input.isFeatured,
     is_active: input.isActive,
     display_order: input.displayOrder,
-    trial_days_default: input.trialDaysDefault,
   };
 }
 

@@ -5,17 +5,23 @@ import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatCurrencyBRL } from "@/lib/format";
 import { getActivePlansWithFeatures } from "@/lib/data/marketing";
+import { getTrialSettings } from "@/lib/data/trial-settings";
+import { formatTrialHeadline } from "@/lib/trial";
 
 export async function Pricing() {
-  const plans = await getActivePlansWithFeatures();
+  const [plans, trial] = await Promise.all([getActivePlansWithFeatures(), getTrialSettings()]);
 
   if (plans.length === 0) return null;
+
+  const trialHeadline = trial.is_active ? formatTrialHeadline(trial.headline_template, trial.default_days) : null;
 
   return (
     <section id="planos" className="mx-auto max-w-6xl px-4 py-20">
       <div className="mx-auto max-w-2xl text-center">
         <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Planos simples, sem pegadinha</h2>
-        <p className="mt-3 text-muted-foreground">Comece grátis. Sem comissão por pedido, nunca.</p>
+        <p className="mt-3 text-muted-foreground">
+          {trial.is_active ? "Comece grátis. " : ""}Sem comissão por pedido, nunca.
+        </p>
       </div>
 
       <div className={cn("mt-12 grid gap-6", plans.length === 2 ? "lg:grid-cols-2" : "lg:grid-cols-3")}>
@@ -27,7 +33,7 @@ export async function Pricing() {
               plan.is_featured ? "border-2 border-primary bg-card shadow-lg" : "bg-card/60",
             )}
           >
-            {plan.is_featured && <Badge className="absolute -top-3 left-8">7 dias grátis</Badge>}
+            {plan.is_featured && trialHeadline && <Badge className="absolute -top-3 left-8">{trialHeadline}</Badge>}
             {!plan.is_featured && plan.price_monthly === null && (
               <Badge variant="secondary" className="absolute -top-3 left-8">
                 Em breve

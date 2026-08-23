@@ -1,15 +1,17 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2 } from "lucide-react";
+import { getTrialSettings } from "@/lib/data/trial-settings";
+import { formatTrialHeadline } from "@/lib/trial";
 
-const badges = [
-  "7 dias grátis",
-  "Sem comissão do VSFood por pedido",
-  "Pagamento online",
-  "Cancele quando quiser",
-];
+const staticBadges = ["Sem comissão do VSFood por pedido", "Pagamento online", "Cancele quando quiser"];
 
-export function Hero() {
+export async function Hero() {
+  const trial = await getTrialSettings();
+  const badges = trial.is_active
+    ? [formatTrialHeadline(trial.headline_template, trial.default_days), ...staticBadges]
+    : staticBadges;
+
   return (
     <section className="relative overflow-hidden">
       <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-brand-amber/25 via-transparent to-transparent" />

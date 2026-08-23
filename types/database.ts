@@ -108,6 +108,14 @@ export type PlanLimit = Timestamps & {
   value: number | null;
 };
 
+export type TrialSettings = Timestamps & {
+  id: string;
+  is_active: boolean;
+  default_days: number;
+  default_plan_id: string | null;
+  headline_template: string;
+};
+
 export type RestaurantUser = {
   id: string;
   restaurant_id: string;
@@ -366,6 +374,7 @@ export type Database = {
       plan_features: TableDef<PlanFeature, { key: string; name: string }>;
       plan_feature_links: TableDef<PlanFeatureLink, { plan_id: string; feature_id: string }>;
       plan_limits: TableDef<PlanLimit, { plan_id: string; key: string }>;
+      trial_settings: TableDef<TrialSettings, object>;
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

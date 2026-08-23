@@ -39,12 +39,19 @@ type SuccessState = { name: string; slug: string; ownerEmail: string; password: 
 type ConflictState = { profileId: string; ownerName: string } | null;
 type SlugStatus = "idle" | "checking" | "available" | "taken";
 
-export function CreateRestaurantAdminForm({ plans }: { plans: ActivePlanOption[] }) {
+export function CreateRestaurantAdminForm({
+  plans,
+  trialDefaults,
+}: {
+  plans: ActivePlanOption[];
+  trialDefaults: { days: number; planId: string | null };
+}) {
   const [serverError, setServerError] = useState<string | null>(null);
   const [conflict, setConflict] = useState<ConflictState>(null);
   const [success, setSuccess] = useState<SuccessState | null>(null);
   const [loading, setLoading] = useState(false);
   const [slugTouched, setSlugTouched] = useState(false);
+  const [planTouched, setPlanTouched] = useState(false);
   const [trialDaysTouched, setTrialDaysTouched] = useState(false);
   const [slugStatus, setSlugStatus] = useState<SlugStatus>("idle");
 
@@ -59,9 +66,9 @@ export function CreateRestaurantAdminForm({ plans }: { plans: ActivePlanOption[]
   } = useForm<CreateRestaurantByAdminInput>({
     resolver: zodResolver(createRestaurantByAdminSchema),
     defaultValues: {
-      planId: plans[0]?.id ?? "",
+      planId: trialDefaults.planId ?? plans[0]?.id ?? "",
       accessType: "trial",
-      trialDays: plans[0]?.trial_days_default ?? 7,
+      trialDays: trialDefaults.days,
       status: "active",
       slug: "",
     },
@@ -78,11 +85,15 @@ export function CreateRestaurantAdminForm({ plans }: { plans: ActivePlanOption[]
     setValue("slug", slugifyName(name || ""));
   }, [name, slugTouched, setValue]);
 
+  // Teste grátis usa a configuração global (dias/plano padrão) como ponto de
+  // partida — o DEV ainda pode sobrescrever pra este restaurante específico
+  // sem alterar a config global (os campos só respeitam esse default enquanto
+  // não forem tocados manualmente).
   useEffect(() => {
-    if (trialDaysTouched) return;
-    const plan = plans.find((p) => p.id === planId);
-    if (plan) setValue("trialDays", plan.trial_days_default);
-  }, [planId, trialDaysTouched, plans, setValue]);
+    if (accessType !== "trial") return;
+    if (!planTouched && trialDefaults.planId) setValue("planId", trialDefaults.planId);
+    if (!trialDaysTouched) setValue("trialDays", trialDefaults.days);
+  }, [accessType, planTouched, trialDaysTouched, trialDefaults, setValue]);
 
   useEffect(() => {
     if (!slug || slug.length < 2) {
@@ -252,7 +263,13 @@ export function CreateRestaurantAdminForm({ plans }: { plans: ActivePlanOption[]
               control={control}
               name="planId"
               render={({ field }) => (
-                <Select value={field.value} onValueChange={field.onChange}>
+                <Select
+                  value={field.value}
+                  onValueChange={(value) => {
+                    setPlanTouched(true);
+                    field.onChange(value);
+                  }}
+                >
                   <SelectTrigger id="planId">
                     <SelectValue placeholder="Selecionar plano" />
                   </SelectTrigger>

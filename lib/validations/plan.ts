@@ -15,7 +15,6 @@ export const planSchema = z.object({
   isFeatured: z.boolean(),
   isActive: z.boolean(),
   displayOrder: z.number().int(),
-  trialDaysDefault: z.number().int().min(0),
 });
 export type PlanInput = z.infer<typeof planSchema>;
 
