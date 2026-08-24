@@ -20,7 +20,10 @@ export function CategoryNav({ categories }: { categories: { id: string; name: st
           setActiveId(visible[0].target.id.replace("categoria-", ""));
         }
       },
-      { rootMargin: "-16px 0px -65% 0px", threshold: 0 },
+      // -64px = altura real do nav sticky (mesmo valor do scroll-mt-16 em
+      // product-catalog.tsx) — só considera a seção "ativa" quando ela já
+      // está visível abaixo da barra presa no topo.
+      { rootMargin: "-64px 0px -65% 0px", threshold: 0 },
     );
 
     for (const s of sections) observer.observe(s);
@@ -37,7 +40,7 @@ export function CategoryNav({ categories }: { categories: { id: string; name: st
   }
 
   return (
-    <div className="relative z-10 border-b border-[var(--store-border)] bg-[var(--store-header)]">
+    <div className="sticky top-0 z-40 border-b border-[var(--store-border)] bg-[var(--store-category-bg)]">
       <div className="mx-auto flex max-w-4xl gap-2 overflow-x-auto px-4 py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {categories.map((c) => (
           <button

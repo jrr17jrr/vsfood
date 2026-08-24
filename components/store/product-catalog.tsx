@@ -24,7 +24,7 @@ export function ProductCatalog({
   return (
     <div className="mx-auto max-w-4xl space-y-8 px-4 py-6">
       {categories.map((category) => (
-        <section key={category.id} id={`categoria-${category.id}`} className="scroll-mt-4">
+        <section key={category.id} id={`categoria-${category.id}`} className="scroll-mt-16">
           <h2 className="mb-3 text-lg font-bold text-[var(--store-text)]">{category.name}</h2>
           <div className="grid gap-3">
             {category.products.map((product) => (
