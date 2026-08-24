@@ -41,7 +41,7 @@ export function CategoryNav({ categories }: { categories: { id: string; name: st
 
   return (
     <div className="sticky top-0 z-40 border-b border-[var(--store-border)] bg-[var(--store-category-bg)]">
-      <div className="mx-auto flex max-w-4xl gap-2 overflow-x-auto px-4 py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="mx-auto flex max-w-4xl gap-2 overflow-x-auto overflow-y-visible px-4 py-3 [scrollbar-width:none] [overscroll-behavior-x:contain] [&::-webkit-scrollbar]:hidden">
         {categories.map((c) => (
           <button
             type="button"
