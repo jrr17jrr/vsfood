@@ -5,6 +5,7 @@ import { useState } from "react";
 import { ProductCard } from "./product-card";
 import { ProductModal } from "./product-modal";
 import type { StorefrontCategory, StorefrontProduct } from "@/lib/data/storefront";
+import { cn } from "@/lib/utils";
 
 export function ProductCatalog({
   categories,
@@ -23,8 +24,19 @@ export function ProductCatalog({
 
   return (
     <div className="mx-auto max-w-4xl space-y-8 px-4 py-6">
-      {categories.map((category) => (
-        <section key={category.id} id={`categoria-${category.id}`} className="scroll-mt-16">
+      {categories.map((category, index) => (
+        <section
+          key={category.id}
+          id={`categoria-${category.id}`}
+          className={cn(
+            "scroll-mt-16",
+            // Garante que a última categoria consiga subir até logo abaixo do nav
+            // sticky (4rem = mesma altura usada em scroll-mt-16 / rootMargin do
+            // IntersectionObserver). Só ocupa espaço se o conteúdo da seção for
+            // mais baixo que isso — não adiciona espaço fixo/arbitrário.
+            index === categories.length - 1 && "min-h-[calc(100svh-4rem)]",
+          )}
+        >
           <h2 className="mb-3 text-lg font-bold text-[var(--store-text)]">{category.name}</h2>
           <div className="grid gap-3">
             {category.products.map((product) => (

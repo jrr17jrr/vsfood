@@ -10,9 +10,22 @@ export function CategoryNav({ categories }: { categories: { id: string; name: st
     const sections = categories
       .map((c) => document.getElementById(`categoria-${c.id}`))
       .filter((el): el is HTMLElement => !!el);
+    const lastCategoryId = categories[categories.length - 1]?.id;
+
+    // Quando a página chega perto do fim, a última seção pode não ter espaço
+    // suficiente abaixo dela para satisfazer a margem de -65% do observer
+    // (ver rootMargin abaixo), então ele nunca a marca como ativa. Esse check
+    // força a última categoria como ativa nesse caso.
+    function isAtBottom() {
+      return window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
+    }
 
     const observer = new IntersectionObserver(
       (entries) => {
+        if (lastCategoryId && isAtBottom()) {
+          setActiveId(lastCategoryId);
+          return;
+        }
         const visible = entries
           .filter((e) => e.isIntersecting)
           .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
@@ -27,7 +40,19 @@ export function CategoryNav({ categories }: { categories: { id: string; name: st
     );
 
     for (const s of sections) observer.observe(s);
-    return () => observer.disconnect();
+
+    function handleScroll() {
+      if (lastCategoryId && isAtBottom()) {
+        setActiveId(lastCategoryId);
+      }
+    }
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("scroll", handleScroll);
+    };
   }, [categories]);
 
   if (categories.length === 0) return null;
