@@ -3,29 +3,11 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ImagePlus, Loader2 } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
-import { ImageWithFallback } from "@/components/shared/image-with-fallback";
 import { createProductAction, updateProductAction } from "@/lib/actions/painel/menu";
 import { uploadProductImage } from "@/lib/storage";
+import { ProductBasicInfo } from "./product-basic-info";
 import { OptionGroupsEditor } from "./option-groups-editor";
 import type { MenuCategory, MenuProduct } from "@/lib/data/menu";
 
@@ -110,87 +92,54 @@ export function ProductDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
-        <DialogHeader>
+      <DialogContent className="flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-5xl">
+        <DialogHeader className="shrink-0 border-b px-4 py-3.5 sm:px-6">
           <DialogTitle>{product ? "Editar produto" : "Novo produto"}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="flex items-center gap-4">
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="relative flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-dashed bg-muted"
-            >
-              {uploading ? (
-                <Loader2 className="size-5 animate-spin text-muted-foreground" />
-              ) : imageUrl ? (
-                <ImageWithFallback src={imageUrl} alt="" fill sizes="80px" className="object-cover" showLabel={false} />
-              ) : (
-                <ImagePlus className="size-5 text-muted-foreground" />
-              )}
-            </button>
-            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
-            <p className="text-xs text-muted-foreground">Clique para enviar uma foto do produto.</p>
-          </div>
+        <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
+          <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,340px)_1fr] lg:gap-8">
+            <ProductBasicInfo
+              name={name}
+              onNameChange={setName}
+              description={description}
+              onDescriptionChange={setDescription}
+              price={price}
+              onPriceChange={setPrice}
+              promoPrice={promoPrice}
+              onPromoPriceChange={setPromoPrice}
+              categoryId={categoryId}
+              onCategoryIdChange={setCategoryId}
+              categories={categories}
+              available={available}
+              onAvailableChange={setAvailable}
+              featured={featured}
+              onFeaturedChange={setFeatured}
+              imageUrl={imageUrl}
+              uploading={uploading}
+              onImageClick={() => fileInputRef.current?.click()}
+              fileInputRef={fileInputRef}
+              onImageChange={handleImageChange}
+            />
 
-          <div className="space-y-1.5">
-            <Label htmlFor="p-name">Nome</Label>
-            <Input id="p-name" value={name} onChange={(e) => setName(e.target.value)} />
+            {product ? (
+              <OptionGroupsEditor productId={product.id} groups={product.optionGroups} />
+            ) : (
+              <div className="flex min-h-[160px] items-center justify-center rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
+                Salve o produto para poder configurar os grupos de adicionais.
+              </div>
+            )}
           </div>
+        </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="p-desc">Descrição</Label>
-            <Textarea id="p-desc" value={description} onChange={(e) => setDescription(e.target.value)} />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="p-price">Preço</Label>
-              <Input id="p-price" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="0,00" />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="p-promo">Preço promocional</Label>
-              <Input id="p-promo" value={promoPrice} onChange={(e) => setPromoPrice(e.target.value)} placeholder="Opcional" />
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label>Categoria</Label>
-            <Select value={categoryId} onValueChange={setCategoryId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione uma categoria" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <Label htmlFor="p-available">Disponível</Label>
-            <Switch id="p-available" checked={available} onCheckedChange={setAvailable} />
-          </div>
-          <div className="flex items-center justify-between">
-            <Label htmlFor="p-featured">Destaque</Label>
-            <Switch id="p-featured" checked={featured} onCheckedChange={setFeatured} />
-          </div>
-
-          <Button className="w-full" onClick={handleSave} disabled={saving || uploading}>
+        <DialogFooter className="mx-0 mb-0 flex-row items-center justify-end gap-2 rounded-t-none border-t px-4 py-3 sm:px-6">
+          <Button type="button" variant="outline" className="shrink-0" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button type="button" onClick={handleSave} disabled={saving || uploading} className="flex-1 sm:min-w-44 sm:flex-none">
             {saving ? "Salvando..." : "Salvar produto"}
           </Button>
-
-          {product && (
-            <>
-              <Separator />
-              <OptionGroupsEditor productId={product.id} groups={product.optionGroups} />
-            </>
-          )}
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
