@@ -37,6 +37,30 @@ export function formatWhatsappDisplay(value: string): string {
   return value;
 }
 
+export type OptionSummaryEntry = { groupName: string; optionName: string; price: number };
+
+/**
+ * Agrupa opções escolhidas por nome de grupo pra exibição em carrinho/pedido,
+ * ex: ["Ponto da carne: Ao ponto", "Adicionais: Bacon extra (+ R$ 5,00), Cheddar extra"].
+ * Preserva a ordem de primeira aparição de cada grupo.
+ */
+export function formatOptionGroupsSummary(options: OptionSummaryEntry[]): string[] {
+  const order: string[] = [];
+  const byGroup = new Map<string, OptionSummaryEntry[]>();
+  for (const o of options) {
+    if (!byGroup.has(o.groupName)) order.push(o.groupName);
+    const list = byGroup.get(o.groupName) ?? [];
+    list.push(o);
+    byGroup.set(o.groupName, list);
+  }
+  return order.map((groupName) => {
+    const parts = (byGroup.get(groupName) ?? []).map((o) =>
+      o.price > 0 ? `${o.optionName} (+${formatCurrencyBRL(o.price)})` : o.optionName,
+    );
+    return `${groupName}: ${parts.join(", ")}`;
+  });
+}
+
 export function onlyDigits(value: string): string {
   return value.replace(/\D/g, "");
 }

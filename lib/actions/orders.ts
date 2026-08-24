@@ -5,6 +5,7 @@ import { requireCustomer } from "@/lib/auth";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { createOrderSchema, type CreateOrderInput } from "@/lib/validations/checkout";
 import { evaluateCoupon, matchDeliveryFee, roundCurrency } from "@/lib/orders/pricing";
+import { calculateGroupCharges } from "@/lib/pricing/option-groups";
 import { getOpenStatus } from "@/lib/opening-hours";
 import { getValidAccessToken } from "@/lib/mercadopago/connection";
 import { getRestaurantConfig } from "@/lib/mercadopago/client";
@@ -110,10 +111,25 @@ export async function createOrderAction(input: CreateOrderInput): Promise<Create
     }
 
     const basePrice = product.promo_price ?? product.price;
-    const resolvedOptions = item.optionIds.map((sel) => {
-      const group = groupMap.get(sel.groupId)!;
-      const option = optionMap.get(sel.optionId)!;
-      return { groupName: group.name, optionName: option.name, price: option.price };
+
+    // Nunca confia no `price` que o client mandou — recalcula a cobrança de
+    // cada opção a partir da regra real do grupo (banco), preservando a
+    // ordem de seleção enviada (importa pra free_first_n: as N primeiras da
+    // lista ficam grátis).
+    const resolvedOptions = productGroups.flatMap((group) => {
+      const selectedIds = selectedByGroup.get(group.id) ?? [];
+      const selectedOpts = selectedIds.map((id) => {
+        const option = optionMap.get(id)!;
+        return { id: option.id, price: option.price };
+      });
+      const charges = calculateGroupCharges(
+        { id: group.id, pricingMode: group.pricing_mode, freeQuantity: group.free_quantity, fixedPrice: group.fixed_price },
+        selectedOpts,
+      );
+      return charges.map((c) => {
+        const option = optionMap.get(c.optionId)!;
+        return { groupName: group.name, optionName: option.name, price: c.charge };
+      });
     });
     const optionsTotal = resolvedOptions.reduce((sum, o) => sum + o.price, 0);
     const lineSubtotal = roundCurrency((basePrice + optionsTotal) * item.quantity);

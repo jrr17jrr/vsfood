@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { formatCurrencyBRL, formatDateTime, formatOrderNumber } from "@/lib/format";
+import { formatCurrencyBRL, formatDateTime, formatOptionGroupsSummary, formatOrderNumber } from "@/lib/format";
 import { PAYMENT_STATUS_LABEL } from "@/lib/orders/status";
 import type { OrderItem, OrderItemOption } from "@/types/database";
 import type { PainelOrder } from "@/lib/data/painel";
@@ -62,9 +62,17 @@ export function OrderDetailSheet({ order, onOpenChange }: { order: PainelOrder |
                           {item.quantity}x {item.name_snapshot}
                         </p>
                         {item.options.length > 0 && (
-                          <p className="text-xs text-muted-foreground">
-                            {item.options.map((o) => o.option_name_snapshot).join(", ")}
-                          </p>
+                          <div className="text-xs text-muted-foreground">
+                            {formatOptionGroupsSummary(
+                              item.options.map((o) => ({
+                                groupName: o.group_name_snapshot,
+                                optionName: o.option_name_snapshot,
+                                price: o.price_snapshot,
+                              })),
+                            ).map((line) => (
+                              <p key={line}>{line}</p>
+                            ))}
+                          </div>
                         )}
                         {item.notes && <p className="text-xs italic text-muted-foreground">&ldquo;{item.notes}&rdquo;</p>}
                       </div>

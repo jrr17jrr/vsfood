@@ -8,6 +8,7 @@ export type CartSelectedOption = {
   groupName: string;
   optionId: string;
   optionName: string;
+  /** Valor já resolvido pela regra de cobrança do grupo (calculateGroupCharges) — não é o preço bruto da opção. */
   price: number;
 };
 

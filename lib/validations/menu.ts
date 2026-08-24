@@ -17,12 +17,30 @@ export const productInputSchema = z.object({
 });
 export type ProductInput = z.infer<typeof productInputSchema>;
 
-export const optionGroupInputSchema = z.object({
-  name: z.string().trim().min(1, "Informe o nome do grupo"),
-  required: z.boolean(),
-  minSelect: z.number().int().min(0),
-  maxSelect: z.number().int().min(1),
-});
+export const optionGroupPricingModeSchema = z.enum(["no_charge", "per_option", "free_first_n", "highest_only", "fixed_price"]);
+
+export const optionGroupInputSchema = z
+  .object({
+    name: z.string().trim().min(1, "Informe o nome do grupo"),
+    required: z.boolean(),
+    minSelect: z.number().int().min(0),
+    maxSelect: z.number().int().min(1),
+    pricingMode: optionGroupPricingModeSchema,
+    freeQuantity: z.number().int().min(0),
+    fixedPrice: z.number().min(0, "Valor inválido"),
+  })
+  .refine((v) => v.minSelect <= v.maxSelect, {
+    message: "O mínimo não pode ser maior que o máximo",
+    path: ["minSelect"],
+  })
+  .refine((v) => !v.required || v.minSelect >= 1, {
+    message: "Grupo obrigatório precisa de mínimo pelo menos 1",
+    path: ["minSelect"],
+  })
+  .refine((v) => v.pricingMode !== "free_first_n" || v.freeQuantity <= v.maxSelect, {
+    message: "A quantidade grátis não pode ser maior que o máximo de escolhas",
+    path: ["freeQuantity"],
+  });
 export type OptionGroupInput = z.infer<typeof optionGroupInputSchema>;
 
 export const optionInputSchema = z.object({

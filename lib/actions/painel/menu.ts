@@ -182,6 +182,9 @@ export async function createOptionGroupAction(productId: string, input: OptionGr
     required: parsed.data.required,
     min_select: parsed.data.minSelect,
     max_select: parsed.data.maxSelect,
+    pricing_mode: parsed.data.pricingMode,
+    free_quantity: parsed.data.freeQuantity,
+    fixed_price: parsed.data.fixedPrice,
     order: count ?? 0,
   });
 
@@ -203,6 +206,9 @@ export async function updateOptionGroupAction(id: string, input: OptionGroupInpu
       required: parsed.data.required,
       min_select: parsed.data.minSelect,
       max_select: parsed.data.maxSelect,
+      pricing_mode: parsed.data.pricingMode,
+      free_quantity: parsed.data.freeQuantity,
+      fixed_price: parsed.data.fixedPrice,
     })
     .eq("id", id);
 
@@ -216,6 +222,34 @@ export async function deleteOptionGroupAction(id: string): Promise<Result> {
   const supabase = await createClient();
   const { error } = await supabase.from("product_option_groups").delete().eq("id", id);
   if (error) return { error: "Não foi possível excluir o grupo." };
+  revalidateMenu();
+  return {};
+}
+
+export async function reorderOptionGroupAction(id: string, direction: "up" | "down"): Promise<Result> {
+  await requireRestaurantMembership();
+  const supabase = await createClient();
+  const { data: group } = await supabase.from("product_option_groups").select("id, product_id").eq("id", id).maybeSingle();
+  if (!group) return {};
+
+  const { data: groups } = await supabase
+    .from("product_option_groups")
+    .select("id, order")
+    .eq("product_id", group.product_id)
+    .order("order");
+
+  if (!groups) return {};
+  const index = groups.findIndex((g) => g.id === id);
+  const swapWith = direction === "up" ? index - 1 : index + 1;
+  if (index === -1 || swapWith < 0 || swapWith >= groups.length) return {};
+
+  const a = groups[index];
+  const b = groups[swapWith];
+  await Promise.all([
+    supabase.from("product_option_groups").update({ order: b.order }).eq("id", a.id),
+    supabase.from("product_option_groups").update({ order: a.order }).eq("id", b.id),
+  ]);
+
   revalidateMenu();
   return {};
 }

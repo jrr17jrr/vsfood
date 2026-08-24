@@ -156,6 +156,8 @@ export type Product = Timestamps & {
   order: number;
 };
 
+export type OptionGroupPricingMode = "no_charge" | "per_option" | "free_first_n" | "highest_only" | "fixed_price";
+
 export type ProductOptionGroup = Timestamps & {
   id: string;
   product_id: string;
@@ -163,6 +165,9 @@ export type ProductOptionGroup = Timestamps & {
   required: boolean;
   min_select: number;
   max_select: number;
+  pricing_mode: OptionGroupPricingMode;
+  free_quantity: number;
+  fixed_price: number;
   order: number;
 };
 

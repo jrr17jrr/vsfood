@@ -9,7 +9,7 @@ import { OrderTimeline } from "@/components/orders/order-timeline";
 import { OrderRealtime } from "@/components/orders/order-realtime";
 import { PixPaymentCard } from "@/components/orders/pix-payment-card";
 import { Badge } from "@/components/ui/badge";
-import { formatCurrencyBRL, formatDateTime, formatOrderNumber } from "@/lib/format";
+import { formatCurrencyBRL, formatDateTime, formatOptionGroupsSummary, formatOrderNumber } from "@/lib/format";
 import { PAYMENT_STATUS_LABEL } from "@/lib/orders/status";
 
 export const metadata: Metadata = { title: "Acompanhar pedido" };
@@ -72,9 +72,17 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
                       {item.quantity}x {item.name_snapshot}
                     </p>
                     {item.options.length > 0 && (
-                      <p className="text-xs text-muted-foreground">
-                        {item.options.map((o) => o.option_name_snapshot).join(", ")}
-                      </p>
+                      <div className="text-xs text-muted-foreground">
+                        {formatOptionGroupsSummary(
+                          item.options.map((o) => ({
+                            groupName: o.group_name_snapshot,
+                            optionName: o.option_name_snapshot,
+                            price: o.price_snapshot,
+                          })),
+                        ).map((line) => (
+                          <p key={line}>{line}</p>
+                        ))}
+                      </div>
                     )}
                     {item.notes && <p className="text-xs italic text-muted-foreground">&ldquo;{item.notes}&rdquo;</p>}
                   </div>

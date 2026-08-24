@@ -5,7 +5,7 @@ import { Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { ImageWithFallback } from "@/components/shared/image-with-fallback";
-import { formatCurrencyBRL } from "@/lib/format";
+import { formatCurrencyBRL, formatOptionGroupsSummary } from "@/lib/format";
 import { cartItemTotal, cartSubtotal, useCartStore } from "@/lib/store/cart";
 
 export function CartSheet({
@@ -51,9 +51,13 @@ export function CartSheet({
                     </button>
                   </div>
                   {item.options.length > 0 && (
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      {item.options.map((o) => o.optionName).join(", ")}
-                    </p>
+                    <div className="mt-0.5 space-y-0.5 text-xs text-muted-foreground">
+                      {formatOptionGroupsSummary(item.options.map((o) => ({ groupName: o.groupName, optionName: o.optionName, price: o.price }))).map(
+                        (line) => (
+                          <p key={line}>{line}</p>
+                        ),
+                      )}
+                    </div>
                   )}
                   {item.notes && <p className="mt-0.5 text-xs italic text-muted-foreground">&ldquo;{item.notes}&rdquo;</p>}
                   <div className="mt-2 flex items-center justify-between">
