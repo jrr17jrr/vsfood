@@ -22,38 +22,37 @@ export function StoreHeader({
         Ratio por breakpoint em vez de um único aspect-ratio: no mobile
         (< sm) um container mais largo que alto (ex: 8/3) espreme demais uma
         arte horizontal com pouca altura útil — aspect-[3/2] dá mais altura
-        pra ler a arte sem ficar achatado. object-cover + object-center (em
-        vez de object-contain) prioriza o centro da arte, que é onde a marca/
-        texto principal normalmente está, sem barras vazias de contain. A
-        partir de sm a proporção mais larga (8/3) já cabe bem com cover.
+        pra ler a arte sem ficar achatado. No mobile usamos object-contain
+        pra nunca cortar texto/logo importantes nas laterais; o gradiente de
+        fundo (cores da loja) preenche o espaço que sobrar dos "tarjas"
+        vazias do contain. A partir de sm a proporção mais larga (8/3) cabe
+        bem com object-cover, então voltamos a cobrir o container inteiro.
         max-h evita o banner ficar gigante em telas muito largas (o container
         é full-bleed, sem max-width).
       */}
-      <div className="relative aspect-[3/2] w-full overflow-hidden bg-[var(--store-category-bg)] sm:aspect-[8/3] sm:max-h-[480px]">
-        {restaurant.banner_url ? (
+      <div className="relative aspect-[3/2] w-full overflow-hidden bg-gradient-to-br from-[var(--store-primary)] to-[var(--store-secondary)] sm:aspect-[8/3] sm:max-h-[480px]">
+        {restaurant.banner_url && (
           <ImageWithFallback
             src={restaurant.banner_url}
             alt=""
             fill
             sizes="100vw"
-            className="object-cover object-center"
+            className="object-contain object-center sm:object-cover"
             showLabel={false}
             priority
           />
-        ) : (
-          <div className="size-full bg-gradient-to-br from-[var(--store-primary)] to-[var(--store-secondary)]" />
         )}
       </div>
 
       <div className="mx-auto max-w-4xl px-4">
-        <div className="-mt-12 flex items-end gap-4">
-          <div className="relative size-20 shrink-0 overflow-hidden rounded-2xl border-4 border-[var(--store-header)] bg-[var(--store-card)] p-2 shadow-md sm:size-24">
+        <div className="-mt-10 flex items-end gap-4 sm:-mt-14">
+          <div className="relative size-[88px] shrink-0 overflow-hidden rounded-2xl border-2 border-[var(--store-header)] bg-white/90 p-1 shadow-sm sm:size-28 sm:p-2">
             {restaurant.logo_url ? (
               <ImageWithFallback
                 src={restaurant.logo_url}
                 alt={restaurant.name}
                 fill
-                sizes="96px"
+                sizes="(min-width: 640px) 112px, 88px"
                 className="object-contain"
                 showLabel={false}
               />

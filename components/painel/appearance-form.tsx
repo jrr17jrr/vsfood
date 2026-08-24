@@ -146,12 +146,19 @@ export function AppearanceForm({ restaurant }: { restaurant: Restaurant }) {
             <button
               type="button"
               onClick={() => logoInputRef.current?.click()}
-              className="relative mt-2 flex size-24 items-center justify-center overflow-hidden rounded-2xl border border-dashed bg-muted p-2"
+              className="relative mt-2 flex size-[88px] items-center justify-center overflow-hidden rounded-2xl border border-dashed bg-muted p-1 sm:size-28 sm:p-2"
             >
               {uploadingLogo ? (
                 <Loader2 className="size-5 animate-spin text-muted-foreground" />
               ) : logoUrl ? (
-                <ImageWithFallback src={logoUrl} alt="" fill sizes="96px" className="object-contain" showLabel={false} />
+                <ImageWithFallback
+                  src={logoUrl}
+                  alt=""
+                  fill
+                  sizes="(min-width: 640px) 112px, 88px"
+                  className="object-contain"
+                  showLabel={false}
+                />
               ) : (
                 <ImagePlus className="size-5 text-muted-foreground" />
               )}
@@ -174,7 +181,7 @@ export function AppearanceForm({ restaurant }: { restaurant: Restaurant }) {
                   alt=""
                   fill
                   sizes="400px"
-                  className="object-cover object-center"
+                  className="object-contain object-center sm:object-cover"
                   showLabel={false}
                 />
               ) : (
