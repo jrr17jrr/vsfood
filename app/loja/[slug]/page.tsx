@@ -59,7 +59,7 @@ export default async function StorePage({ params }: Props) {
         )}
       </main>
       <CartWidget minOrderValue={restaurant.min_order_value} />
-      <StoreFooter restaurantName={restaurant.name} />
+      <StoreFooter restaurant={restaurant} />
     </div>
   );
 }
