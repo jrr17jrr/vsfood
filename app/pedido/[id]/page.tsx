@@ -105,7 +105,7 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
               {order.delivery_type === "delivery" && (
                 <div className="flex justify-between text-muted-foreground">
                   <span>Taxa de entrega</span>
-                  <span>{formatCurrencyBRL(order.delivery_fee)}</span>
+                  <span>{order.delivery_fee === 0 ? "Grátis" : formatCurrencyBRL(order.delivery_fee)}</span>
                 </div>
               )}
               <div className="flex justify-between text-base font-bold">
@@ -116,16 +116,23 @@ export default async function PedidoPage({ params }: { params: Promise<{ id: str
           </div>
 
           <div className="mt-6 rounded-2xl border bg-card p-5 text-sm">
-            <h2 className="font-semibold">Entrega e pagamento</h2>
+            <h2 className="font-semibold">{order.delivery_type === "delivery" ? "Entrega" : "Retirada no local"} e pagamento</h2>
             <div className="mt-3 space-y-1 text-muted-foreground">
-              <p>
-                {order.delivery_type === "delivery" ? "Entrega" : "Retirada no local"} · {PAYMENT_METHOD_LABEL[order.payment_method]}
-              </p>
-              {order.address_snapshot && (
+              <p>{PAYMENT_METHOD_LABEL[order.payment_method]}</p>
+              {order.estimated_time_minutes != null && <p>Tempo estimado: ~{order.estimated_time_minutes} min</p>}
+              {order.delivery_type === "delivery" && order.address_snapshot && (
                 <p>
                   {order.address_snapshot.street}, {order.address_snapshot.number}
                   {order.address_snapshot.complement ? ` - ${order.address_snapshot.complement}` : ""} ·{" "}
                   {order.address_snapshot.neighborhood}, {order.address_snapshot.city}
+                </p>
+              )}
+              {order.delivery_type === "pickup" && order.restaurant_address && (
+                <p>
+                  {order.restaurant_address.street}, {order.restaurant_address.number}
+                  {order.restaurant_address.complement ? ` - ${order.restaurant_address.complement}` : ""}
+                  {order.restaurant_address.neighborhood ? ` · ${order.restaurant_address.neighborhood}` : ""}
+                  {order.restaurant_address.city ? `, ${order.restaurant_address.city}` : ""}
                 </p>
               )}
               {order.change_for && <p>Troco para {formatCurrencyBRL(order.change_for)}</p>}

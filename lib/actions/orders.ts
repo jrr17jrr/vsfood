@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { requireCustomer } from "@/lib/auth";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { createOrderSchema, type CreateOrderInput } from "@/lib/validations/checkout";
-import { evaluateCoupon, matchDeliveryFee, roundCurrency } from "@/lib/orders/pricing";
+import { applyFreeShipping, evaluateCoupon, matchDeliveryZone, roundCurrency } from "@/lib/orders/pricing";
 import { calculateGroupCharges } from "@/lib/pricing/option-groups";
 import { getOpenStatus } from "@/lib/opening-hours";
 import { getValidAccessToken } from "@/lib/mercadopago/connection";
@@ -36,6 +36,15 @@ export async function createOrderAction(input: CreateOrderInput): Promise<Create
 
   const { data: hours } = await db.from("opening_hours").select("*").eq("restaurant_id", restaurant.id);
   if (!getOpenStatus(hours ?? []).isOpen) return { error: "Esta loja está fechada no momento." };
+
+  // Nunca confia no método escolhido no client — o restaurante pode ter
+  // desabilitado entrega ou retirada depois que a página carregou.
+  if (data.deliveryType === "delivery" && !restaurant.delivery_enabled) {
+    return { error: "Esta loja não está aceitando pedidos para entrega no momento." };
+  }
+  if (data.deliveryType === "pickup" && !restaurant.pickup_enabled) {
+    return { error: "Esta loja não está aceitando pedidos para retirada no momento." };
+  }
 
   const isOnlinePayment = data.paymentMethod === "pix_online" || data.paymentMethod === "card_online";
   let restaurantAccessToken: string | null = null;
@@ -147,13 +156,13 @@ export async function createOrderAction(input: CreateOrderInput): Promise<Create
 
   const subtotal = roundCurrency(resolvedItems.reduce((sum, i) => sum + i.subtotal, 0));
 
-  if (subtotal < restaurant.min_order_value) {
-    return { error: `Pedido mínimo: R$ ${restaurant.min_order_value.toFixed(2)}.` };
-  }
-
   // --- entrega / retirada ---
+  // Recalcula tudo a partir do banco (zona, frete grátis, pedido mínimo,
+  // tempo estimado) — o client só mostra um preview, nunca decide o valor
+  // final.
   let addressSnapshot: AddressSnapshot | null = null;
   let deliveryFee = 0;
+  let estimatedTimeMinutes = restaurant.estimated_time_minutes;
 
   if (data.deliveryType === "delivery") {
     let address: AddressSnapshot & { id?: string };
@@ -185,9 +194,15 @@ export async function createOrderAction(input: CreateOrderInput): Promise<Create
       .eq("restaurant_id", restaurant.id)
       .eq("active", true);
 
-    const fee = matchDeliveryFee(zones ?? [], address.neighborhood);
-    if (fee === null) return { error: "Não entregamos nesse bairro." };
-    deliveryFee = fee;
+    const match = matchDeliveryZone(zones ?? [], address.neighborhood);
+    if (match === null) return { error: "Não entregamos nesse bairro." };
+    deliveryFee = applyFreeShipping(match.fee, subtotal, restaurant.free_shipping_threshold);
+    estimatedTimeMinutes = match.zone?.estimated_time_minutes ?? restaurant.estimated_time_minutes;
+
+    const minOrder = match.zone?.min_order_value ?? restaurant.min_order_value;
+    if (subtotal < minOrder) {
+      return { error: `Pedido mínimo para entrega: R$ ${minOrder.toFixed(2)}.` };
+    }
 
     addressSnapshot = {
       cep: address.cep,
@@ -199,6 +214,12 @@ export async function createOrderAction(input: CreateOrderInput): Promise<Create
       state: address.state,
       reference: address.reference,
     };
+  } else {
+    estimatedTimeMinutes = restaurant.pickup_estimated_time_minutes ?? restaurant.estimated_time_minutes;
+    const pickupMinOrder = restaurant.pickup_min_order_value ?? 0;
+    if (subtotal < pickupMinOrder) {
+      return { error: `Pedido mínimo para retirada: R$ ${pickupMinOrder.toFixed(2)}.` };
+    }
   }
 
   // --- cupom ---
@@ -270,6 +291,7 @@ export async function createOrderAction(input: CreateOrderInput): Promise<Create
       coupon_id: couponId,
       notes: data.notes ?? null,
       change_for: changeFor,
+      estimated_time_minutes: estimatedTimeMinutes,
     })
     .select("id, number")
     .single();

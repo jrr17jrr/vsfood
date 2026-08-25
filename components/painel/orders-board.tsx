@@ -1,13 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { createClient } from "@/lib/supabase/client";
-import { playNotificationBeep } from "@/lib/sound";
 import { formatCurrencyBRL, formatOrderNumber, formatTime } from "@/lib/format";
 import { ORDER_STATUS_LABEL, nextStatusOptions } from "@/lib/orders/status";
 import { updateOrderStatusAction } from "@/lib/actions/painel/orders";
@@ -26,35 +24,10 @@ const STATUS_ACTION_LABEL: Record<OrderStatus, string> = {
   cancelled: "Cancelado",
 };
 
-export function OrdersBoard({ restaurantId, orders }: { restaurantId: string; orders: PainelOrder[] }) {
+export function OrdersBoard({ orders }: { orders: PainelOrder[] }) {
   const router = useRouter();
   const [selected, setSelected] = useState<PainelOrder | null>(null);
   const [pending, setPending] = useState<string | null>(null);
-
-  useEffect(() => {
-    const supabase = createClient();
-    const channel = supabase
-      .channel(`painel-orders-${restaurantId}`)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "orders", filter: `restaurant_id=eq.${restaurantId}` },
-        () => {
-          playNotificationBeep();
-          toast.success("Novo pedido recebido!");
-          router.refresh();
-        },
-      )
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "orders", filter: `restaurant_id=eq.${restaurantId}` },
-        () => router.refresh(),
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [restaurantId, router]);
 
   async function handleStatusChange(orderId: string, status: OrderStatus) {
     setPending(orderId);

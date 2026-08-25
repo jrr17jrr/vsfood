@@ -72,6 +72,11 @@ export type Restaurant = Timestamps & {
   min_order_value: number;
   estimated_time_minutes: number;
   next_order_number: number;
+  delivery_enabled: boolean;
+  pickup_enabled: boolean;
+  free_shipping_threshold: number | null;
+  pickup_min_order_value: number | null;
+  pickup_estimated_time_minutes: number | null;
 };
 
 export type Plan = Timestamps & {
@@ -205,6 +210,9 @@ export type DeliveryZone = Timestamps & {
   neighborhood: string;
   fee: number;
   active: boolean;
+  min_order_value: number | null;
+  estimated_time_minutes: number | null;
+  order: number;
 };
 
 export type OpeningHour = {
@@ -266,6 +274,7 @@ export type Order = Timestamps & {
   coupon_id: string | null;
   notes: string | null;
   change_for: number | null;
+  estimated_time_minutes: number | null;
   accepted_at: string | null;
   ready_at: string | null;
   completed_at: string | null;

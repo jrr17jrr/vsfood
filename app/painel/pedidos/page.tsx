@@ -14,7 +14,7 @@ export default async function PainelPedidosPage() {
       <h1 className="text-2xl font-bold tracking-tight">Pedidos</h1>
       <p className="mt-1 text-sm text-muted-foreground">Acompanhe e gerencie os pedidos em tempo real.</p>
       <div className="mt-6">
-        <OrdersBoard restaurantId={restaurantId} orders={orders} />
+        <OrdersBoard orders={orders} />
       </div>
     </div>
   );

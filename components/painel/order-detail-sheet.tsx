@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, Store, Truck } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { formatCurrencyBRL, formatDateTime, formatOptionGroupsSummary, formatOrderNumber } from "@/lib/format";
 import { PAYMENT_STATUS_LABEL } from "@/lib/orders/status";
@@ -49,6 +50,22 @@ export function OrderDetailSheet({ order, onOpenChange }: { order: PainelOrder |
               </SheetTitle>
             </SheetHeader>
             <div className="space-y-4 px-4 pb-6">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge className={order.delivery_type === "delivery" ? "" : "bg-secondary text-secondary-foreground"}>
+                  {order.delivery_type === "delivery" ? (
+                    <>
+                      <Truck className="size-3.5" /> ENTREGA
+                    </>
+                  ) : (
+                    <>
+                      <Store className="size-3.5" /> RETIRADA NO LOCAL
+                    </>
+                  )}
+                </Badge>
+                {order.estimated_time_minutes != null && (
+                  <span className="text-xs text-muted-foreground">~{order.estimated_time_minutes} min</span>
+                )}
+              </div>
               <p className="text-sm text-muted-foreground">{formatDateTime(order.created_at)}</p>
 
               {items === null ? (
@@ -107,7 +124,6 @@ export function OrderDetailSheet({ order, onOpenChange }: { order: PainelOrder |
 
               <div className="space-y-1 border-t pt-3 text-sm text-muted-foreground">
                 <p>
-                  {order.delivery_type === "delivery" ? "Entrega" : "Retirada no local"} ·{" "}
                   {PAYMENT_METHOD_LABEL[order.payment_method]} · {PAYMENT_STATUS_LABEL[order.payment_status]}
                 </p>
                 {order.address_snapshot && (

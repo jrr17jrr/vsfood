@@ -1,21 +1,26 @@
 import { notFound } from "next/navigation";
 import { requireRestaurantMembership } from "@/lib/auth";
-import { getRestaurant, getPlanName } from "@/lib/data/painel";
+import { getRestaurant, getPlanName, getNewOrdersCount } from "@/lib/data/painel";
 import { PainelSidebar, PainelMobileNav } from "@/components/painel/painel-sidebar";
 import { StoreStatusBar } from "@/components/painel/store-status-bar";
 import { AdminViewBanner } from "@/components/painel/admin-view-banner";
+import { OrdersRealtimeNotifier } from "@/components/painel/orders-realtime-notifier";
 
 export default async function PainelLayout({ children }: { children: React.ReactNode }) {
   const { restaurantId, isAdminView } = await requireRestaurantMembership();
   const restaurant = await getRestaurant(restaurantId);
   if (!restaurant) notFound();
-  const planName = await getPlanName(restaurant.plan_id);
+  const [planName, newOrdersCount] = await Promise.all([
+    getPlanName(restaurant.plan_id),
+    getNewOrdersCount(restaurantId),
+  ]);
 
   return (
     <div className="flex min-h-screen">
-      <PainelSidebar restaurantName={restaurant.name} />
+      <OrdersRealtimeNotifier restaurantId={restaurantId} />
+      <PainelSidebar restaurantName={restaurant.name} newOrdersCount={newOrdersCount} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <PainelMobileNav restaurantName={restaurant.name} />
+        <PainelMobileNav restaurantName={restaurant.name} newOrdersCount={newOrdersCount} />
         {isAdminView && <AdminViewBanner restaurantName={restaurant.name} />}
         <StoreStatusBar restaurant={restaurant} planName={planName} />
         <main className="flex-1 bg-secondary/20 p-4 sm:p-6">{children}</main>

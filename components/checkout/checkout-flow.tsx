@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2, ShoppingBag } from "lucide-react";
+import { Loader2, ShoppingBag, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -32,6 +32,16 @@ const ONLINE_PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
   { value: "pix_online", label: "PIX (aprovação automática)" },
   { value: "card_online", label: "Cartão de crédito (online)" },
 ];
+
+function restaurantAddressLine(restaurant: Restaurant): string | null {
+  if (!restaurant.street) return null;
+  const parts = [
+    `${restaurant.street}, ${restaurant.number ?? "s/n"}`,
+    restaurant.complement || null,
+    restaurant.neighborhood ? `${restaurant.neighborhood}, ${restaurant.city ?? ""}` : restaurant.city,
+  ].filter(Boolean);
+  return parts.join(" — ");
+}
 
 export function CheckoutFlow({
   customerEmail,
@@ -73,7 +83,7 @@ export function CheckoutFlow({
     (async () => {
       const [{ data: restaurantData }, { data: zonesData }, { data: addressesData }, capabilities] = await Promise.all([
         supabase.from("restaurants").select("*").eq("id", restaurantId).maybeSingle(),
-        supabase.from("delivery_zones").select("*").eq("restaurant_id", restaurantId).eq("active", true),
+        supabase.from("delivery_zones").select("*").eq("restaurant_id", restaurantId).eq("active", true).order("order"),
         supabase.from("customer_addresses").select("*").order("is_default", { ascending: false }),
         getPaymentCapabilitiesAction(restaurantId),
       ]);
@@ -84,25 +94,61 @@ export function CheckoutFlow({
       setAddressId(addressesData && addressesData.length > 0 ? addressesData[0].id : "new");
       setMpCapabilities(capabilities);
       setContextLoaded(true);
+      // Se só um método estiver habilitado, já entra com ele selecionado —
+      // sem mostrar a escolha (pedido explícito: só mostrar seleção quando
+      // os dois estiverem disponíveis).
+      if (restaurantData && !restaurantData.delivery_enabled && restaurantData.pickup_enabled) {
+        setDeliveryType("pickup");
+      } else if (restaurantData && restaurantData.delivery_enabled && !restaurantData.pickup_enabled) {
+        setDeliveryType("delivery");
+      }
     })();
     return () => {
       cancelled = true;
     };
   }, [restaurantId]);
 
-  const selectedAddress = addresses.find((a) => a.id === addressId);
+  const deliveryEnabled = restaurant?.delivery_enabled ?? true;
+  const pickupEnabled = restaurant?.pickup_enabled ?? true;
+  const showDeliveryTypeChoice = deliveryEnabled && pickupEnabled;
 
-  const deliveryFee = useMemo(() => {
-    if (deliveryType !== "delivery") return 0;
-    if (zones.length === 0) return 0;
-    const neighborhood = (selectedAddress?.neighborhood ?? newAddress?.neighborhood ?? "").trim().toLowerCase();
-    if (!neighborhood) return null;
-    const match = zones.find((z) => z.neighborhood.trim().toLowerCase() === neighborhood);
-    return match ? match.fee : null;
-  }, [deliveryType, zones, selectedAddress, newAddress]);
+  const selectedAddress = addresses.find((a) => a.id === addressId);
+  const neighborhood = (selectedAddress?.neighborhood ?? newAddress?.neighborhood ?? "").trim().toLowerCase();
+
+  const matchedZone = useMemo(() => {
+    if (deliveryType !== "delivery" || zones.length === 0) return null;
+    return zones.find((z) => z.neighborhood.trim().toLowerCase() === neighborhood) ?? null;
+  }, [deliveryType, zones, neighborhood]);
+
+  const noZonesConfigured = zones.length === 0;
+  const rawDeliveryFee =
+    deliveryType !== "delivery"
+      ? 0
+      : noZonesConfigured
+        ? 0
+        : !neighborhood
+          ? null
+          : matchedZone
+            ? matchedZone.fee
+            : null;
+
+  const freeShippingThreshold = restaurant?.free_shipping_threshold ?? null;
+  const freeShippingApplied =
+    rawDeliveryFee !== null && rawDeliveryFee > 0 && freeShippingThreshold != null && subtotal >= freeShippingThreshold;
+  const deliveryFee = rawDeliveryFee === null ? null : freeShippingApplied ? 0 : rawDeliveryFee;
 
   const total = Math.max(0, subtotal + (deliveryFee ?? 0));
-  const belowMinimum = restaurant ? subtotal < restaurant.min_order_value : false;
+
+  const effectiveMinOrder =
+    deliveryType === "pickup"
+      ? (restaurant?.pickup_min_order_value ?? 0)
+      : (matchedZone?.min_order_value ?? restaurant?.min_order_value ?? 0);
+  const belowMinimum = subtotal < effectiveMinOrder;
+
+  const estimatedTime =
+    deliveryType === "pickup"
+      ? (restaurant?.pickup_estimated_time_minutes ?? restaurant?.estimated_time_minutes)
+      : (matchedZone?.estimated_time_minutes ?? restaurant?.estimated_time_minutes);
 
   async function submitOrder(card?: CardBrickSubmitData) {
     if (!restaurantId) return;
@@ -171,30 +217,42 @@ export function CheckoutFlow({
     );
   }
 
+  if (restaurant && !deliveryEnabled && !pickupEnabled) {
+    return (
+      <div className="flex flex-col items-center gap-3 py-16 text-center text-muted-foreground">
+        <Store className="size-10" />
+        <p className="font-medium text-foreground">Esta loja não está aceitando pedidos no momento</p>
+        <p className="text-sm">Entrega e retirada estão desativadas — tente novamente mais tarde.</p>
+      </div>
+    );
+  }
+
   return (
     <>
       <WhatsappGate open={!whatsapp} onSaved={setWhatsapp} />
       <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
       <div className="space-y-6">
-        <section>
-          <h2 className="font-semibold">Entrega ou retirada</h2>
-          <RadioGroup
-            className="mt-3 grid grid-cols-2 gap-3"
-            value={deliveryType}
-            onValueChange={(v) => setDeliveryType(v as "delivery" | "pickup")}
-          >
-            <Label className="flex cursor-pointer items-center gap-2 rounded-xl border p-3 has-[[data-state=checked]]:border-primary">
-              <RadioGroupItem value="delivery" />
-              Entrega
-            </Label>
-            <Label className="flex cursor-pointer items-center gap-2 rounded-xl border p-3 has-[[data-state=checked]]:border-primary">
-              <RadioGroupItem value="pickup" />
-              Retirada no local
-            </Label>
-          </RadioGroup>
-        </section>
+        {showDeliveryTypeChoice && (
+          <section>
+            <h2 className="font-semibold">Entrega ou retirada</h2>
+            <RadioGroup
+              className="mt-3 grid grid-cols-2 gap-3"
+              value={deliveryType}
+              onValueChange={(v) => setDeliveryType(v as "delivery" | "pickup")}
+            >
+              <Label className="flex cursor-pointer items-center gap-2 rounded-xl border p-3 has-[[data-state=checked]]:border-primary">
+                <RadioGroupItem value="delivery" />
+                Entrega
+              </Label>
+              <Label className="flex cursor-pointer items-center gap-2 rounded-xl border p-3 has-[[data-state=checked]]:border-primary">
+                <RadioGroupItem value="pickup" />
+                Retirada no local
+              </Label>
+            </RadioGroup>
+          </section>
+        )}
 
-        {deliveryType === "delivery" && (
+        {deliveryType === "delivery" ? (
           <section>
             <h2 className="font-semibold">Endereço</h2>
             <div className="mt-3 space-y-3">
@@ -230,8 +288,22 @@ export function CheckoutFlow({
                 </div>
               )}
 
-              {deliveryFee === null && (selectedAddress || newAddress) && (
+              {rawDeliveryFee === null && (selectedAddress || newAddress) && (
                 <p className="text-sm font-medium text-destructive">Não entregamos neste bairro.</p>
+              )}
+            </div>
+          </section>
+        ) : (
+          <section>
+            <h2 className="font-semibold">Retirada no local</h2>
+            <div className="mt-3 rounded-xl border p-4 text-sm">
+              {restaurant && restaurantAddressLine(restaurant) ? (
+                <p className="text-muted-foreground">{restaurantAddressLine(restaurant)}</p>
+              ) : (
+                <p className="text-muted-foreground">Endereço do restaurante ainda não cadastrado.</p>
+              )}
+              {estimatedTime != null && (
+                <p className="mt-1 text-muted-foreground">Tempo estimado para retirada: {estimatedTime} min</p>
               )}
             </div>
           </section>
@@ -323,7 +395,19 @@ export function CheckoutFlow({
           {deliveryType === "delivery" && (
             <div className="flex justify-between">
               <span className="text-muted-foreground">Taxa de entrega</span>
-              <span>{deliveryFee === null ? "—" : formatCurrencyBRL(deliveryFee)}</span>
+              <span>
+                {rawDeliveryFee === null
+                  ? "—"
+                  : freeShippingApplied
+                    ? <span className="text-primary">Grátis</span>
+                    : formatCurrencyBRL(rawDeliveryFee)}
+              </span>
+            </div>
+          )}
+          {freeShippingApplied && (
+            <div className="flex justify-between text-primary">
+              <span>Frete grátis aplicado</span>
+              <span>-{formatCurrencyBRL(rawDeliveryFee ?? 0)}</span>
             </div>
           )}
           <div className="flex justify-between text-base font-bold">
@@ -332,9 +416,13 @@ export function CheckoutFlow({
           </div>
         </div>
 
-        {belowMinimum && restaurant && (
+        {deliveryType === "delivery" && estimatedTime != null && rawDeliveryFee !== null && (
+          <p className="mt-3 text-xs text-muted-foreground">Tempo estimado de entrega: {estimatedTime} min</p>
+        )}
+
+        {belowMinimum && effectiveMinOrder > 0 && (
           <p className="mt-3 text-sm font-medium text-destructive">
-            Pedido mínimo: {formatCurrencyBRL(restaurant.min_order_value)}
+            Pedido mínimo para {deliveryType === "delivery" ? "entrega" : "retirada"}: {formatCurrencyBRL(effectiveMinOrder)}
           </p>
         )}
 

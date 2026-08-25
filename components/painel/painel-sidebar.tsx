@@ -19,6 +19,8 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { VsfoodLogo } from "@/components/layout/vsfood-logo";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { OrderSoundToggle } from "./order-sound-toggle";
+import { Badge } from "@/components/ui/badge";
 import { signOutAction } from "@/lib/actions/auth";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -35,7 +37,7 @@ const links = [
   { href: "/painel/relatorios", label: "Relatórios", icon: BarChart3 },
 ];
 
-function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
+function NavLinks({ onNavigate, newOrdersCount }: { onNavigate?: () => void; newOrdersCount: number }) {
   const pathname = usePathname();
   return (
     <nav className="flex flex-1 flex-col gap-1">
@@ -53,6 +55,14 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
           >
             <link.icon className="size-4" />
             {link.label}
+            {link.href === "/painel/pedidos" && newOrdersCount > 0 && (
+              <Badge
+                variant={active ? "secondary" : "default"}
+                className={cn("ml-auto", active && "bg-primary-foreground text-primary")}
+              >
+                {newOrdersCount}
+              </Badge>
+            )}
           </Link>
         );
       })}
@@ -60,7 +70,7 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
-export function PainelSidebar({ restaurantName }: { restaurantName: string }) {
+export function PainelSidebar({ restaurantName, newOrdersCount }: { restaurantName: string; newOrdersCount: number }) {
   return (
     <aside className="hidden w-64 shrink-0 flex-col border-r bg-sidebar p-4 sm:flex">
       <Link href="/painel" className="mb-1">
@@ -68,9 +78,12 @@ export function PainelSidebar({ restaurantName }: { restaurantName: string }) {
       </Link>
       <div className="mb-6 flex items-center justify-between gap-2">
         <p className="truncate text-xs text-muted-foreground">{restaurantName}</p>
-        <ThemeToggle className="size-7 shrink-0" />
+        <div className="flex shrink-0 items-center gap-1">
+          <OrderSoundToggle className="size-7" />
+          <ThemeToggle className="size-7" />
+        </div>
       </div>
-      <NavLinks />
+      <NavLinks newOrdersCount={newOrdersCount} />
       <form action={signOutAction}>
         <button
           type="submit"
@@ -84,7 +97,7 @@ export function PainelSidebar({ restaurantName }: { restaurantName: string }) {
   );
 }
 
-export function PainelMobileNav({ restaurantName }: { restaurantName: string }) {
+export function PainelMobileNav({ restaurantName, newOrdersCount }: { restaurantName: string; newOrdersCount: number }) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -93,17 +106,23 @@ export function PainelMobileNav({ restaurantName }: { restaurantName: string }) 
         <VsfoodLogo />
       </Link>
       <div className="flex items-center gap-1">
+        <OrderSoundToggle />
         <ThemeToggle />
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
-            <Button size="icon" variant="outline">
+            <Button size="icon" variant="outline" className="relative">
               <Menu className="size-5" />
+              {newOrdersCount > 0 && (
+                <span className="absolute -top-1 -right-1 grid size-4 place-items-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                  {newOrdersCount > 9 ? "9+" : newOrdersCount}
+                </span>
+              )}
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="w-64 p-4">
             <SheetTitle className="sr-only">Menu</SheetTitle>
             <p className="mb-6 truncate text-xs text-muted-foreground">{restaurantName}</p>
-            <NavLinks onNavigate={() => setOpen(false)} />
+            <NavLinks onNavigate={() => setOpen(false)} newOrdersCount={newOrdersCount} />
             <form action={signOutAction}>
               <button
                 type="submit"

@@ -40,6 +40,15 @@ export type OrderDetail = Order & {
   restaurant_name: string;
   restaurant_slug: string;
   restaurant_whatsapp: string | null;
+  /** Endereço do estabelecimento — só usado quando delivery_type é "pickup". */
+  restaurant_address: {
+    street: string | null;
+    number: string | null;
+    complement: string | null;
+    neighborhood: string | null;
+    city: string | null;
+    state: string | null;
+  } | null;
   items: (OrderItem & { options: OrderItemOption[] })[];
   pix: { qrCode: string; qrCodeBase64: string } | null;
 };
@@ -52,7 +61,7 @@ export async function getOrderDetail(orderId: string): Promise<OrderDetail | nul
 
   const { data: restaurant } = await supabase
     .from("restaurants")
-    .select("name, slug, whatsapp")
+    .select("name, slug, whatsapp, street, number, complement, neighborhood, city, state")
     .eq("id", order.restaurant_id)
     .maybeSingle();
 
@@ -87,6 +96,16 @@ export async function getOrderDetail(orderId: string): Promise<OrderDetail | nul
     restaurant_name: restaurant?.name ?? "",
     restaurant_slug: restaurant?.slug ?? "",
     restaurant_whatsapp: restaurant?.whatsapp ?? null,
+    restaurant_address: restaurant?.street
+      ? {
+          street: restaurant.street,
+          number: restaurant.number,
+          complement: restaurant.complement,
+          neighborhood: restaurant.neighborhood,
+          city: restaurant.city,
+          state: restaurant.state,
+        }
+      : null,
     items: (items ?? []).map((i) => ({
       ...i,
       options: (options ?? []).filter((o) => o.order_item_id === i.id),

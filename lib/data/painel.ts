@@ -77,6 +77,17 @@ export async function getDashboardStats(restaurantId: string): Promise<Dashboard
   };
 }
 
+/** Contagem leve (só count, sem trazer linhas) pro badge de "pedidos novos" na sidebar — mesmo critério de `pendingOrders` em getDashboardStats, extraído à parte pra não pagar as outras queries do dashboard em toda página do painel. */
+export async function getNewOrdersCount(restaurantId: string): Promise<number> {
+  const supabase = await createClient();
+  const { count } = await supabase
+    .from("orders")
+    .select("id", { count: "exact", head: true })
+    .eq("restaurant_id", restaurantId)
+    .eq("status", "new");
+  return count ?? 0;
+}
+
 export type PainelOrder = Order & { customer_name: string; customer_whatsapp: string | null };
 
 export async function getPainelOrders(restaurantId: string, limit = 100): Promise<PainelOrder[]> {
