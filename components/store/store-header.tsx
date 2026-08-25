@@ -24,11 +24,10 @@ export function StoreHeader({
         aspect-[16/7] é bem mais largo que alto no mobile e usamos object-cover
         nos dois breakpoints — cropa um pouco as laterais em vez de sobrar
         espaço vazio, o que lê melhor numa arte horizontal. No desktop
-        aspect-[8/2.4] é mais baixo que o antigo 8/3 pra não engolir a
-        primeira dobra; max-h trava o topo em telas muito largas (o container
-        é full-bleed, sem max-width).
+        aspect-[8/2.4] + max-h-[320px] mantêm o banner baixo mesmo em telas
+        muito largas (o container é full-bleed, sem max-width).
       */}
-      <div className="relative aspect-[16/7] w-full overflow-hidden bg-gradient-to-br from-[var(--store-primary)] to-[var(--store-secondary)] sm:aspect-[8/2.4] sm:max-h-[380px]">
+      <div className="relative aspect-[16/7] w-full overflow-hidden bg-gradient-to-br from-[var(--store-primary)] to-[var(--store-secondary)] sm:aspect-[8/2.4] sm:max-h-[320px]">
         {restaurant.banner_url && (
           <ImageWithFallback
             src={restaurant.banner_url}
@@ -43,19 +42,25 @@ export function StoreHeader({
       </div>
 
       <div className="mx-auto max-w-4xl px-4 pb-4 sm:pb-5">
-        <div className="-mt-9 flex items-end gap-4 sm:-mt-12">
-          <div className="relative size-[76px] shrink-0 overflow-hidden rounded-2xl border-2 border-[var(--store-header)] bg-white/95 p-0.5 shadow-md sm:size-24">
+        <div className="-mt-8 flex items-end gap-4 sm:-mt-10">
+          {/*
+            Só a imagem + radius — sem card/fundo branco em volta. object-cover
+            preenche o quadrado por completo (sem "tarja" de fundo aparecendo
+            nas bordas de logos não-quadradas); a sombra é só o suficiente pra
+            destacar do banner por trás, sem virar moldura.
+          */}
+          <div className="relative size-16 shrink-0 overflow-hidden rounded-2xl shadow-md sm:size-20">
             {restaurant.logo_url ? (
               <ImageWithFallback
                 src={restaurant.logo_url}
                 alt={restaurant.name}
                 fill
-                sizes="(min-width: 640px) 96px, 76px"
-                className="object-contain"
+                sizes="(min-width: 640px) 80px, 64px"
+                className="object-cover"
                 showLabel={false}
               />
             ) : (
-              <div className="grid size-full place-items-center bg-[var(--store-primary)] text-2xl font-bold text-[var(--store-button-text)]">
+              <div className="grid size-full place-items-center bg-[var(--store-primary)] text-xl font-bold text-[var(--store-button-text)]">
                 {restaurant.name.charAt(0)}
               </div>
             )}

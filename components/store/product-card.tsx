@@ -29,9 +29,11 @@ export function ProductCard({ product, onSelect }: { product: StorefrontProduct;
         </div>
       </div>
 
-      <div className="relative size-20 shrink-0 overflow-hidden rounded-xl bg-[var(--store-category-bg)] sm:size-24">
-        <ImageWithFallback src={product.image_url} alt={product.name} fill sizes="96px" className="object-cover" showLabel={false} />
-        <span className="absolute -bottom-2 -right-2 grid size-7 place-items-center rounded-full bg-[var(--store-button)] text-[var(--store-button-text)] shadow">
+      <div className="relative size-20 shrink-0 sm:size-24">
+        <div className="relative size-full overflow-hidden rounded-xl bg-[var(--store-category-bg)]">
+          <ImageWithFallback src={product.image_url} alt={product.name} fill sizes="96px" className="object-cover" showLabel={false} />
+        </div>
+        <span className="absolute right-1.5 bottom-1.5 grid size-7 place-items-center rounded-full bg-[var(--store-button)] text-[var(--store-button-text)] shadow-md">
           <Plus className="size-4" />
         </span>
       </div>

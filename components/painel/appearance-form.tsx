@@ -140,38 +140,18 @@ export function AppearanceForm({ restaurant }: { restaurant: Restaurant }) {
           <h2 className="text-base font-semibold">Logo e banner</h2>
           <p className="text-sm text-muted-foreground">Imagens exibidas no topo da sua loja pública.</p>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <Label>Logo</Label>
-            <button
-              type="button"
-              onClick={() => logoInputRef.current?.click()}
-              className="relative mt-2 flex size-[76px] items-center justify-center overflow-hidden rounded-2xl border border-dashed bg-muted p-0.5 sm:size-24"
-            >
-              {uploadingLogo ? (
-                <Loader2 className="size-5 animate-spin text-muted-foreground" />
-              ) : logoUrl ? (
-                <ImageWithFallback
-                  src={logoUrl}
-                  alt=""
-                  fill
-                  sizes="(min-width: 640px) 96px, 76px"
-                  className="object-contain"
-                  showLabel={false}
-                />
-              ) : (
-                <ImagePlus className="size-5 text-muted-foreground" />
-              )}
-            </button>
-            <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoChange} />
-            <p className="mt-1 text-xs text-muted-foreground">Tamanho recomendado: 512x512px</p>
-          </div>
-          <div>
-            <Label>Banner</Label>
+        {/*
+          Preview composto (banner + logo sobreposta) em vez de dois botões
+          soltos — o dono vê aqui a mesma proporção, object-fit e overlap que
+          a loja pública (StoreHeader) e o mockup do Hero usam.
+        */}
+        <div>
+          <div className="relative">
             <button
               type="button"
               onClick={() => bannerInputRef.current?.click()}
-              className="relative mt-2 flex aspect-[16/7] w-full items-center justify-center overflow-hidden rounded-2xl border border-dashed bg-muted sm:aspect-[8/2.4] sm:max-h-[380px]"
+              aria-label="Alterar banner"
+              className="relative flex aspect-[16/7] w-full items-center justify-center overflow-hidden rounded-2xl border border-dashed bg-muted sm:aspect-[8/2.4] sm:max-h-[320px]"
             >
               {uploadingBanner ? (
                 <Loader2 className="size-5 animate-spin text-muted-foreground" />
@@ -188,8 +168,31 @@ export function AppearanceForm({ restaurant }: { restaurant: Restaurant }) {
                 <ImagePlus className="size-5 text-muted-foreground" />
               )}
             </button>
-            <input ref={bannerInputRef} type="file" accept="image/*" className="hidden" onChange={handleBannerChange} />
-            <p className="mt-1 text-xs text-muted-foreground">Tamanho recomendado: 1920x720px</p>
+
+            <button
+              type="button"
+              onClick={() => logoInputRef.current?.click()}
+              aria-label="Alterar logo"
+              className="absolute bottom-0 left-4 size-16 translate-y-1/2 overflow-hidden rounded-2xl shadow-md sm:left-6 sm:size-20"
+            >
+              {uploadingLogo ? (
+                <div className="grid size-full place-items-center bg-muted">
+                  <Loader2 className="size-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : logoUrl ? (
+                <ImageWithFallback src={logoUrl} alt="" fill sizes="80px" className="object-cover" showLabel={false} />
+              ) : (
+                <div className="grid size-full place-items-center border border-dashed bg-muted">
+                  <ImagePlus className="size-5 text-muted-foreground" />
+                </div>
+              )}
+            </button>
+          </div>
+          <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoChange} />
+          <input ref={bannerInputRef} type="file" accept="image/*" className="hidden" onChange={handleBannerChange} />
+          <div className="mt-10 flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground sm:mt-12">
+            <p>Logo: tamanho recomendado 512x512px</p>
+            <p>Banner: tamanho recomendado 1920x720px</p>
           </div>
         </div>
       </section>
