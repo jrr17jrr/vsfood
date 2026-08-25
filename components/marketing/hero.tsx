@@ -3,9 +3,10 @@ import Image from "next/image";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/marketing/reveal";
+import { ImageWithFallback } from "@/components/shared/image-with-fallback";
 import { getTrialSettings } from "@/lib/data/trial-settings";
 import { formatTrialHeadline } from "@/lib/trial";
-import { getDemoRestaurant, getDemoPreviewProducts } from "@/lib/data/marketing";
+import { getDemoRestaurant, getDemoPreviewProducts, getDemoCategories } from "@/lib/data/marketing";
 import { formatCurrencyBRL } from "@/lib/format";
 
 const staticBenefits = [
@@ -23,7 +24,9 @@ const floatingCards = [
 
 export async function Hero() {
   const [trial, demo] = await Promise.all([getTrialSettings(), getDemoRestaurant()]);
-  const products = demo ? await getDemoPreviewProducts(demo.id) : [];
+  const [products, categories] = demo
+    ? await Promise.all([getDemoPreviewProducts(demo.id), getDemoCategories(demo.id)])
+    : [[], []];
 
   const benefits = trial.is_active
     ? [formatTrialHeadline(trial.headline_template, trial.default_days), ...staticBenefits]
@@ -91,31 +94,25 @@ export async function Hero() {
           </Reveal>
         </div>
 
-        <Reveal direction="right" delayMs={120} className="relative mx-auto w-full max-w-sm md:max-w-none">
-          <div className="relative mx-auto w-full max-w-sm">
+        <Reveal direction="right" delayMs={120} className="relative">
+          <div className="relative mx-auto w-full max-w-sm md:mx-0 md:max-w-none">
             <div
-              className="animate-glow absolute -inset-6 -z-10 rounded-[2.75rem] bg-gradient-to-br from-brand-orange/35 to-brand-red/20 blur-2xl"
+              className="animate-glow absolute -inset-6 -z-10 rounded-[2.75rem] bg-gradient-to-br from-brand-orange/35 to-brand-red/20 blur-2xl md:-inset-10"
               aria-hidden
             />
 
-            <div className="animate-float overflow-hidden rounded-[2rem] border border-border/60 bg-card/90 p-3 shadow-2xl shadow-black/10 backdrop-blur dark:shadow-black/40">
+            <div className="animate-float overflow-hidden rounded-[2rem] border border-border/60 bg-card/90 p-2.5 shadow-2xl shadow-black/10 backdrop-blur dark:shadow-black/40">
               <div className="overflow-hidden rounded-[1.5rem] border border-border/60">
-                <div className="relative h-28 w-full bg-gradient-to-br from-brand-orange to-brand-red">
+                <div className="relative h-36 w-full bg-gradient-to-br from-brand-orange to-brand-red sm:h-44 md:h-52">
                   {demo?.banner_url && (
-                    <Image
-                      src={demo.banner_url}
-                      alt=""
-                      fill
-                      sizes="384px"
-                      className="object-cover opacity-90"
-                    />
+                    <Image src={demo.banner_url} alt="" fill sizes="(min-width: 768px) 560px, 400px" className="object-cover" />
                   )}
                 </div>
-                <div className="space-y-3 bg-background p-4">
-                  <div className="-mt-9 flex items-end gap-3">
-                    <div className="relative size-14 shrink-0 overflow-hidden rounded-2xl border-2 border-background bg-white p-1 shadow">
+                <div className="space-y-3 bg-background p-4 sm:p-5">
+                  <div className="-mt-11 flex items-end gap-3">
+                    <div className="relative size-16 shrink-0 overflow-hidden rounded-2xl border-2 border-background bg-white p-1 shadow sm:size-20">
                       {demo?.logo_url ? (
-                        <Image src={demo.logo_url} alt={demo.name} fill sizes="56px" className="object-contain" />
+                        <Image src={demo.logo_url} alt={demo.name} fill sizes="80px" className="object-contain" />
                       ) : (
                         <div className="grid size-full place-items-center bg-primary text-lg font-bold text-primary-foreground">
                           {(demo?.name ?? "VS").charAt(0)}
@@ -124,29 +121,50 @@ export async function Hero() {
                     </div>
                   </div>
                   <div>
-                    <p className="font-semibold">{demo?.name ?? "Sua loja"}</p>
-                    <p className="text-xs text-primary">
+                    <p className="text-lg font-semibold">{demo?.name ?? "Sua loja"}</p>
+                    <p className="text-sm text-primary">
                       {demo ? "Loja de demonstração • Aberto agora" : "Cardápio digital sempre online"}
                     </p>
                   </div>
-                  {demo?.cuisine_type && (
-                    <div className="flex gap-2 text-xs">
-                      <span className="rounded-full bg-secondary px-2 py-1">{demo.cuisine_type}</span>
+                  {categories.length > 0 ? (
+                    <div className="flex flex-wrap gap-2 text-xs">
+                      {categories.map((c) => (
+                        <span key={c.name} className="rounded-full bg-secondary px-2.5 py-1 font-medium">
+                          {c.name}
+                        </span>
+                      ))}
                     </div>
+                  ) : (
+                    demo?.cuisine_type && (
+                      <div className="flex gap-2 text-xs">
+                        <span className="rounded-full bg-secondary px-2.5 py-1 font-medium">{demo.cuisine_type}</span>
+                      </div>
+                    )
                   )}
                   {products.length > 0 ? (
-                    products.map((p) => (
-                      <div key={p.name} className="flex items-center gap-3 rounded-xl border border-border/60 p-2">
-                        <div className="size-12 shrink-0 rounded-lg bg-muted" />
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium">{p.name}</p>
-                          <p className="text-xs text-muted-foreground">{formatCurrencyBRL(p.price)}</p>
+                    <div className="space-y-2.5">
+                      {products.map((p) => (
+                        <div key={p.name} className="flex items-center gap-3 rounded-xl border border-border/60 p-2.5">
+                          <div className="relative size-14 shrink-0 overflow-hidden rounded-lg">
+                            <ImageWithFallback
+                              src={p.image_url}
+                              alt={p.name}
+                              fill
+                              sizes="56px"
+                              className="object-cover object-center"
+                              showLabel={false}
+                            />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium">{p.name}</p>
+                            <p className="text-xs text-muted-foreground">{formatCurrencyBRL(p.price)}</p>
+                          </div>
+                          <div className="grid size-6 shrink-0 place-items-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                            +
+                          </div>
                         </div>
-                        <div className="grid size-6 shrink-0 place-items-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-                          +
-                        </div>
-                      </div>
-                    ))
+                      ))}
+                    </div>
                   ) : (
                     <div className="rounded-xl border border-dashed border-border p-3 text-center text-xs text-muted-foreground">
                       Cardápio digital, sempre online
@@ -156,11 +174,11 @@ export async function Hero() {
               </div>
             </div>
 
-            <div className="animate-float-delayed absolute -right-6 -bottom-6 hidden w-40 rounded-2xl border border-border/60 bg-card p-3 shadow-xl sm:block">
+            <div className="animate-float-delayed absolute -right-4 -bottom-6 hidden w-40 rounded-2xl border border-border/60 bg-card p-3 shadow-xl sm:block md:-right-8">
               <p className="text-xs font-medium text-muted-foreground">{floatingCards[1].title}</p>
               <p className="text-sm font-semibold">{floatingCards[1].subtitle}</p>
             </div>
-            <div className="animate-float absolute -top-6 -left-6 hidden w-36 rounded-2xl border border-border/60 bg-card p-3 shadow-xl sm:block">
+            <div className="animate-float absolute -top-6 -left-4 hidden w-36 rounded-2xl border border-border/60 bg-card p-3 shadow-xl sm:block md:-left-8">
               <p className="text-xs font-medium text-muted-foreground">{floatingCards[0].title}</p>
               <p className="text-sm font-semibold">{floatingCards[0].subtitle}</p>
             </div>

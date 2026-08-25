@@ -146,7 +146,7 @@ export function AppearanceForm({ restaurant }: { restaurant: Restaurant }) {
             <button
               type="button"
               onClick={() => logoInputRef.current?.click()}
-              className="relative mt-2 flex size-[76px] items-center justify-center overflow-hidden rounded-2xl border border-dashed bg-muted p-1 sm:size-24"
+              className="relative mt-2 flex size-[76px] items-center justify-center overflow-hidden rounded-2xl border border-dashed bg-muted p-0.5 sm:size-24"
             >
               {uploadingLogo ? (
                 <Loader2 className="size-5 animate-spin text-muted-foreground" />
@@ -171,7 +171,7 @@ export function AppearanceForm({ restaurant }: { restaurant: Restaurant }) {
             <button
               type="button"
               onClick={() => bannerInputRef.current?.click()}
-              className="relative mt-2 flex aspect-[16/7] w-full items-center justify-center overflow-hidden rounded-2xl border border-dashed bg-muted sm:aspect-[8/3]"
+              className="relative mt-2 flex aspect-[16/7] w-full items-center justify-center overflow-hidden rounded-2xl border border-dashed bg-muted sm:aspect-[8/2.4] sm:max-h-[380px]"
             >
               {uploadingBanner ? (
                 <Loader2 className="size-5 animate-spin text-muted-foreground" />

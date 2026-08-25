@@ -61,20 +61,35 @@ export async function getDemoRestaurant(): Promise<DemoRestaurant | null> {
   return data;
 }
 
-export type DemoPreviewProduct = { name: string; price: number };
+export type DemoPreviewProduct = { name: string; price: number; image_url: string | null };
 
 /**
- * Um punhado de produtos reais da loja demo (nome + preço) só pra ilustrar o
- * mockup do Hero — consulta leve, não a storefront completa (categorias,
- * grupos de opção etc.) que a página /loja/[slug] precisa.
+ * Um punhado de produtos reais da loja demo (nome, preço, foto) só pra
+ * ilustrar o mockup do Hero — consulta leve, não a storefront completa
+ * (categorias, grupos de opção etc.) que a página /loja/[slug] precisa.
  */
 export async function getDemoPreviewProducts(restaurantId: string, limit = 2): Promise<DemoPreviewProduct[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("products")
-    .select("name, price")
+    .select("name, price, image_url")
     .eq("restaurant_id", restaurantId)
     .eq("available", true)
+    .order("order")
+    .limit(limit);
+  return data ?? [];
+}
+
+export type DemoCategory = { name: string };
+
+/** Um par de categorias reais da loja demo, só pros chips do mockup do Hero. */
+export async function getDemoCategories(restaurantId: string, limit = 3): Promise<DemoCategory[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("categories")
+    .select("name")
+    .eq("restaurant_id", restaurantId)
+    .eq("active", true)
     .order("order")
     .limit(limit);
   return data ?? [];

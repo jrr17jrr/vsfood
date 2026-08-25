@@ -21,13 +21,14 @@ export function StoreHeader({
       {/*
         Ratio por breakpoint: a arte é horizontal (pouca altura útil), então
         object-contain deixava tarjas vazias enormes acima/abaixo no mobile.
-        aspect-[16/7] é bem mais largo que alto (perto do 8/3 do desktop) e
-        usamos object-cover nos dois breakpoints — cropa um pouco as laterais
-        em vez de sobrar espaço vazio, o que lê melhor numa arte horizontal.
-        max-h evita o banner ficar gigante em telas muito largas (o container
+        aspect-[16/7] é bem mais largo que alto no mobile e usamos object-cover
+        nos dois breakpoints — cropa um pouco as laterais em vez de sobrar
+        espaço vazio, o que lê melhor numa arte horizontal. No desktop
+        aspect-[8/2.4] é mais baixo que o antigo 8/3 pra não engolir a
+        primeira dobra; max-h trava o topo em telas muito largas (o container
         é full-bleed, sem max-width).
       */}
-      <div className="relative aspect-[16/7] w-full overflow-hidden bg-gradient-to-br from-[var(--store-primary)] to-[var(--store-secondary)] sm:aspect-[8/3] sm:max-h-[480px]">
+      <div className="relative aspect-[16/7] w-full overflow-hidden bg-gradient-to-br from-[var(--store-primary)] to-[var(--store-secondary)] sm:aspect-[8/2.4] sm:max-h-[380px]">
         {restaurant.banner_url && (
           <ImageWithFallback
             src={restaurant.banner_url}
@@ -41,9 +42,9 @@ export function StoreHeader({
         )}
       </div>
 
-      <div className="mx-auto max-w-4xl px-4">
+      <div className="mx-auto max-w-4xl px-4 pb-4 sm:pb-5">
         <div className="-mt-9 flex items-end gap-4 sm:-mt-12">
-          <div className="relative size-[76px] shrink-0 overflow-hidden rounded-2xl border-2 border-[var(--store-header)] bg-white/95 p-1 shadow-md sm:size-24">
+          <div className="relative size-[76px] shrink-0 overflow-hidden rounded-2xl border-2 border-[var(--store-header)] bg-white/95 p-0.5 shadow-md sm:size-24">
             {restaurant.logo_url ? (
               <ImageWithFallback
                 src={restaurant.logo_url}
@@ -61,8 +62,8 @@ export function StoreHeader({
           </div>
         </div>
 
-        <div className="mt-3 flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-bold tracking-tight text-[var(--store-text)]">{restaurant.name}</h1>
+        <div className="mt-2.5 flex flex-wrap items-center gap-2.5">
+          <h1 className="text-xl font-bold tracking-tight text-[var(--store-text)] sm:text-2xl">{restaurant.name}</h1>
           <Badge
             variant={isReallyOpen ? "default" : "secondary"}
             className={isReallyOpen ? "bg-[var(--store-primary)] text-[var(--store-button-text)]" : ""}
@@ -74,7 +75,7 @@ export function StoreHeader({
           <p className="mt-1 max-w-2xl text-sm text-[var(--store-text-muted)]">{restaurant.description}</p>
         )}
 
-        <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-[var(--store-text-muted)]">
+        <div className="mt-2.5 flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-[var(--store-text-muted)]">
           <span className="flex items-center gap-1.5">
             <Clock className="size-4" />
             {isReallyOpen ? `${restaurant.estimated_time_minutes} min` : openStatus.nextOpening ? `Abre ${openStatus.nextOpening}` : "Fechado no momento"}
