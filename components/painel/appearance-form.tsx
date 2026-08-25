@@ -173,14 +173,21 @@ export function AppearanceForm({ restaurant }: { restaurant: Restaurant }) {
               type="button"
               onClick={() => logoInputRef.current?.click()}
               aria-label="Alterar logo"
-              className="absolute bottom-0 left-4 size-16 translate-y-1/2 overflow-hidden rounded-2xl shadow-md sm:left-6 sm:size-20"
+              className="absolute bottom-0 left-4 size-[84px] translate-y-1/2 overflow-hidden rounded-2xl shadow-md sm:left-6 sm:size-[104px]"
             >
               {uploadingLogo ? (
                 <div className="grid size-full place-items-center bg-muted">
                   <Loader2 className="size-5 animate-spin text-muted-foreground" />
                 </div>
               ) : logoUrl ? (
-                <ImageWithFallback src={logoUrl} alt="" fill sizes="80px" className="object-cover" showLabel={false} />
+                <ImageWithFallback
+                  src={logoUrl}
+                  alt=""
+                  fill
+                  sizes="(min-width: 640px) 104px, 84px"
+                  className="object-cover"
+                  showLabel={false}
+                />
               ) : (
                 <div className="grid size-full place-items-center border border-dashed bg-muted">
                   <ImagePlus className="size-5 text-muted-foreground" />
@@ -190,7 +197,7 @@ export function AppearanceForm({ restaurant }: { restaurant: Restaurant }) {
           </div>
           <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoChange} />
           <input ref={bannerInputRef} type="file" accept="image/*" className="hidden" onChange={handleBannerChange} />
-          <div className="mt-10 flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground sm:mt-12">
+          <div className="mt-12 flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground sm:mt-16">
             <p>Logo: tamanho recomendado 512x512px</p>
             <p>Banner: tamanho recomendado 1920x720px</p>
           </div>

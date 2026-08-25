@@ -109,10 +109,16 @@ export async function Hero() {
                   )}
                 </div>
                 <div className="space-y-3 bg-background p-4 sm:p-5">
-                  <div className="-mt-9 flex items-end gap-3 sm:-mt-11">
-                    <div className="relative size-14 shrink-0 overflow-hidden rounded-2xl shadow-md sm:size-16">
+                  <div className="-mt-8 flex items-end gap-3 sm:-mt-10">
+                    <div className="relative size-16 shrink-0 overflow-hidden rounded-2xl shadow-md sm:size-20">
                       {demo?.logo_url ? (
-                        <Image src={demo.logo_url} alt={demo.name} fill sizes="64px" className="object-cover" />
+                        <Image
+                          src={demo.logo_url}
+                          alt={demo.name}
+                          fill
+                          sizes="(min-width: 640px) 80px, 64px"
+                          className="object-cover"
+                        />
                       ) : (
                         <div className="grid size-full place-items-center bg-primary text-lg font-bold text-primary-foreground">
                           {(demo?.name ?? "VS").charAt(0)}

@@ -42,25 +42,27 @@ export function StoreHeader({
       </div>
 
       <div className="mx-auto max-w-4xl px-4 pb-4 sm:pb-5">
-        <div className="-mt-8 flex items-end gap-4 sm:-mt-10">
+        <div className="-mt-[42px] flex items-end gap-4 sm:-mt-[52px]">
           {/*
             Só a imagem + radius — sem card/fundo branco em volta. object-cover
             preenche o quadrado por completo (sem "tarja" de fundo aparecendo
             nas bordas de logos não-quadradas); a sombra é só o suficiente pra
-            destacar do banner por trás, sem virar moldura.
+            destacar do banner por trás, sem virar moldura. -mt exatamente
+            metade do size (84/2, 104/2) pra manter a metade sobre o banner e
+            a metade sobre o conteúdo em qualquer um dos dois tamanhos.
           */}
-          <div className="relative size-16 shrink-0 overflow-hidden rounded-2xl shadow-md sm:size-20">
+          <div className="relative size-[84px] shrink-0 overflow-hidden rounded-2xl shadow-md sm:size-[104px]">
             {restaurant.logo_url ? (
               <ImageWithFallback
                 src={restaurant.logo_url}
                 alt={restaurant.name}
                 fill
-                sizes="(min-width: 640px) 80px, 64px"
+                sizes="(min-width: 640px) 104px, 84px"
                 className="object-cover"
                 showLabel={false}
               />
             ) : (
-              <div className="grid size-full place-items-center bg-[var(--store-primary)] text-xl font-bold text-[var(--store-button-text)]">
+              <div className="grid size-full place-items-center bg-[var(--store-primary)] text-2xl font-bold text-[var(--store-button-text)]">
                 {restaurant.name.charAt(0)}
               </div>
             )}
