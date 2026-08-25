@@ -44,14 +44,14 @@ export function StoreHeader({
       <div className="mx-auto max-w-4xl px-4 pb-4 sm:pb-5">
         <div className="-mt-[42px] flex items-end gap-4 sm:-mt-[52px]">
           {/*
-            Só a imagem + radius — sem card/fundo branco em volta. object-cover
-            preenche o quadrado por completo (sem "tarja" de fundo aparecendo
-            nas bordas de logos não-quadradas); a sombra é só o suficiente pra
-            destacar do banner por trás, sem virar moldura. -mt exatamente
+            Só a imagem + radius — sem card, sem fundo, sem padding, sem
+            sombra. Nada aqui além de overflow-hidden + rounded-2xl; qualquer
+            "halo" claro que ainda apareça vem do próprio arquivo da logo
+            (canvas branco embutido no PNG), não deste wrapper. -mt exatamente
             metade do size (84/2, 104/2) pra manter a metade sobre o banner e
             a metade sobre o conteúdo em qualquer um dos dois tamanhos.
           */}
-          <div className="relative size-[84px] shrink-0 overflow-hidden rounded-2xl shadow-md sm:size-[104px]">
+          <div className="relative size-[84px] shrink-0 overflow-hidden rounded-2xl sm:size-[104px]">
             {restaurant.logo_url ? (
               <ImageWithFallback
                 src={restaurant.logo_url}
