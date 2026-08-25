@@ -33,9 +33,11 @@ export type HeaderProfile = {
 };
 
 const NAV_LINKS = [
-  { href: "/#como-funciona", label: "Como funciona" },
   { href: "/#recursos", label: "Recursos" },
+  { href: "/#como-funciona", label: "Como funciona" },
   { href: "/#planos", label: "Planos" },
+  { href: "/#demonstracao", label: "Demonstração" },
+  { href: "/#faq", label: "FAQ" },
 ];
 
 type MenuLink = { href: string; label: string; icon: LucideIcon };
@@ -158,7 +160,7 @@ export function MobileMenu({ profile, storeSlug }: { profile: HeaderProfile | nu
         ) : (
           <div className="mb-4 flex flex-col gap-2 border-b pb-4">
             <Button asChild onClick={close}>
-              <Link href="/cadastro?tipo=restaurante">Começar grátis</Link>
+              <Link href="/cadastro?tipo=restaurante">Criar minha loja</Link>
             </Button>
             <Button asChild variant="outline" onClick={close}>
               <Link href="/login">Entrar</Link>

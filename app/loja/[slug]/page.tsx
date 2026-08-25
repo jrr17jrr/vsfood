@@ -7,6 +7,7 @@ import { CategoryNav } from "@/components/store/category-nav";
 import { ProductCatalog } from "@/components/store/product-catalog";
 import { CartWidget } from "@/components/cart/cart-widget";
 import { CartRestaurantSync } from "@/components/store/cart-restaurant-sync";
+import { ScrollToTopOnMount } from "@/components/store/scroll-to-top-on-mount";
 import { StoreFooter } from "@/components/layout/public-footer";
 import { parseStoreTheme, storeThemeToCssVars } from "@/lib/theme/store-theme";
 
@@ -45,6 +46,7 @@ export default async function StorePage({ params }: Props) {
 
   return (
     <div className="contents" style={themeStyle}>
+      <ScrollToTopOnMount key={restaurant.id} />
       <CartRestaurantSync restaurantId={restaurant.id} slug={restaurant.slug} />
       <main className="flex-1 bg-[var(--store-bg)] pb-24 sm:pb-10">
         <StoreHeader restaurant={restaurant} openStatus={openStatus} minDeliveryFee={minDeliveryFee} />

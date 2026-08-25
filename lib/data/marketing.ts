@@ -35,6 +35,7 @@ export async function getActivePlansWithFeatures(): Promise<MarketingPlan[]> {
 }
 
 export type DemoRestaurant = {
+  id: string;
   slug: string;
   name: string;
   description: string | null;
@@ -52,10 +53,29 @@ export async function getDemoRestaurant(): Promise<DemoRestaurant | null> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("restaurants")
-    .select("slug, name, description, cuisine_type, logo_url, banner_url")
+    .select("id, slug, name, description, cuisine_type, logo_url, banner_url")
     .eq("is_demo", true)
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
   return data;
+}
+
+export type DemoPreviewProduct = { name: string; price: number };
+
+/**
+ * Um punhado de produtos reais da loja demo (nome + preço) só pra ilustrar o
+ * mockup do Hero — consulta leve, não a storefront completa (categorias,
+ * grupos de opção etc.) que a página /loja/[slug] precisa.
+ */
+export async function getDemoPreviewProducts(restaurantId: string, limit = 2): Promise<DemoPreviewProduct[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("products")
+    .select("name, price")
+    .eq("restaurant_id", restaurantId)
+    .eq("available", true)
+    .order("order")
+    .limit(limit);
+  return data ?? [];
 }

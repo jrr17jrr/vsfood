@@ -3,8 +3,17 @@ import { Button } from "@/components/ui/button";
 import { VsfoodLogo } from "./vsfood-logo";
 import { DesktopUserMenu, MobileMenu, type HeaderProfile } from "./header-auth-controls";
 import { ThemeToggle } from "./theme-toggle";
+import { HeaderScrollShell } from "./header-scroll-shell";
 import { getCurrentProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+
+const NAV_LINKS = [
+  { href: "/#recursos", label: "Recursos" },
+  { href: "/#como-funciona", label: "Como funciona" },
+  { href: "/#planos", label: "Planos" },
+  { href: "/#demonstracao", label: "Demonstração" },
+  { href: "/#faq", label: "FAQ" },
+];
 
 async function getStoreSlug(profileId: string): Promise<string | null> {
   const supabase = await createClient();
@@ -32,21 +41,17 @@ export async function PublicHeader() {
     : null;
 
   return (
-    <header className="sticky top-0 z-40 border-b bg-background/85 backdrop-blur">
+    <HeaderScrollShell>
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
         <Link href="/" aria-label="VSFood">
           <VsfoodLogo />
         </Link>
         <nav className="hidden items-center gap-8 text-sm font-medium text-muted-foreground md:flex">
-          <Link href="/#como-funciona" className="hover:text-foreground">
-            Como funciona
-          </Link>
-          <Link href="/#recursos" className="hover:text-foreground">
-            Recursos
-          </Link>
-          <Link href="/#planos" className="hover:text-foreground">
-            Planos
-          </Link>
+          {NAV_LINKS.map((link) => (
+            <Link key={link.href} href={link.href} className="transition-colors hover:text-foreground">
+              {link.label}
+            </Link>
+          ))}
         </nav>
         <div className="flex items-center gap-2">
           <ThemeToggle />
@@ -59,14 +64,14 @@ export async function PublicHeader() {
               <Button variant="ghost" asChild>
                 <Link href="/login">Entrar</Link>
               </Button>
-              <Button asChild>
-                <Link href="/cadastro?tipo=restaurante">Começar grátis</Link>
+              <Button className="shadow-[0_0_0_1px_rgba(240,99,29,0.3)] hover:shadow-[0_0_20px_-2px_rgba(240,99,29,0.55)]" asChild>
+                <Link href="/cadastro?tipo=restaurante">Criar minha loja</Link>
               </Button>
             </div>
           )}
           <MobileMenu profile={headerProfile} storeSlug={storeSlug} />
         </div>
       </div>
-    </header>
+    </HeaderScrollShell>
   );
 }

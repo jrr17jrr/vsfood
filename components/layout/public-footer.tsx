@@ -4,24 +4,73 @@ import type { Restaurant } from "@/types/database";
 import { ImageWithFallback } from "@/components/shared/image-with-fallback";
 import { VsfoodLogo } from "./vsfood-logo";
 
+const FOOTER_LINKS = [
+  { href: "/#recursos", label: "Recursos" },
+  { href: "/#como-funciona", label: "Como funciona" },
+  { href: "/#planos", label: "Planos" },
+  { href: "/#demonstracao", label: "Demonstração" },
+  { href: "/#faq", label: "FAQ" },
+];
+
 export function PublicFooter() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="border-t bg-secondary/40">
-      <div className="mx-auto flex max-w-6xl flex-col items-center gap-4 px-4 py-8 text-center sm:flex-row sm:justify-between sm:text-left">
-        <VsfoodLogo className="text-base" />
-        <p className="text-sm text-muted-foreground">
-          © {year} VSFood • Desenvolvido por{" "}
-          <a
-            href="https://visionariodev.com.br"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-medium underline underline-offset-4 hover:text-foreground"
-          >
-            Visionário Dev
-          </a>
-        </p>
+    <footer className="border-t border-border/70 bg-secondary/20">
+      <div className="mx-auto max-w-6xl px-4 py-12">
+        <div className="flex flex-col gap-8 sm:flex-row sm:justify-between">
+          <div className="max-w-xs">
+            <VsfoodLogo className="text-base" />
+            <p className="mt-3 text-sm text-muted-foreground">
+              Cardápio digital, pedidos online e gestão da sua loja em um só lugar.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-x-12 gap-y-6">
+            <div>
+              <p className="text-sm font-semibold">Produto</p>
+              <nav className="mt-3 flex flex-col gap-2">
+                {FOOTER_LINKS.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+              </nav>
+            </div>
+            <div>
+              <p className="text-sm font-semibold">Conta</p>
+              <nav className="mt-3 flex flex-col gap-2">
+                <Link href="/login" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+                  Entrar
+                </Link>
+                <Link
+                  href="/cadastro?tipo=restaurante"
+                  className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  Criar minha loja
+                </Link>
+              </nav>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-10 border-t border-border/70 pt-6 text-center sm:text-left">
+          <p className="text-sm text-muted-foreground">
+            © {year} VSFood • Desenvolvido por{" "}
+            <a
+              href="https://visionariodev.com.br"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium underline underline-offset-4 hover:text-foreground"
+            >
+              Visionário Dev
+            </a>
+          </p>
+        </div>
       </div>
     </footer>
   );

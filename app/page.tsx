@@ -4,6 +4,8 @@ import { Hero } from "@/components/marketing/hero";
 import { HowItWorks } from "@/components/marketing/how-it-works";
 import { Features } from "@/components/marketing/features";
 import { PanelShowcase } from "@/components/marketing/panel-showcase";
+import { CustomizationShowcase } from "@/components/marketing/customization-showcase";
+import { PaymentsSection } from "@/components/marketing/payments-section";
 import { DemoSection } from "@/components/marketing/demo-section";
 import { Pricing } from "@/components/marketing/pricing";
 import { FAQ } from "@/components/marketing/faq";
@@ -18,6 +20,8 @@ export default function LandingPage() {
         <HowItWorks />
         <Features />
         <PanelShowcase />
+        <CustomizationShowcase />
+        <PaymentsSection />
         <DemoSection />
         <Pricing />
         <FAQ />

@@ -146,7 +146,7 @@ export function AppearanceForm({ restaurant }: { restaurant: Restaurant }) {
             <button
               type="button"
               onClick={() => logoInputRef.current?.click()}
-              className="relative mt-2 flex size-[88px] items-center justify-center overflow-hidden rounded-2xl border border-dashed bg-muted p-1 sm:size-28 sm:p-2"
+              className="relative mt-2 flex size-[76px] items-center justify-center overflow-hidden rounded-2xl border border-dashed bg-muted p-1 sm:size-24"
             >
               {uploadingLogo ? (
                 <Loader2 className="size-5 animate-spin text-muted-foreground" />
@@ -155,7 +155,7 @@ export function AppearanceForm({ restaurant }: { restaurant: Restaurant }) {
                   src={logoUrl}
                   alt=""
                   fill
-                  sizes="(min-width: 640px) 112px, 88px"
+                  sizes="(min-width: 640px) 96px, 76px"
                   className="object-contain"
                   showLabel={false}
                 />
@@ -171,7 +171,7 @@ export function AppearanceForm({ restaurant }: { restaurant: Restaurant }) {
             <button
               type="button"
               onClick={() => bannerInputRef.current?.click()}
-              className="relative mt-2 flex aspect-[3/2] w-full items-center justify-center overflow-hidden rounded-2xl border border-dashed bg-muted sm:aspect-[8/3]"
+              className="relative mt-2 flex aspect-[16/7] w-full items-center justify-center overflow-hidden rounded-2xl border border-dashed bg-muted sm:aspect-[8/3]"
             >
               {uploadingBanner ? (
                 <Loader2 className="size-5 animate-spin text-muted-foreground" />
@@ -181,7 +181,7 @@ export function AppearanceForm({ restaurant }: { restaurant: Restaurant }) {
                   alt=""
                   fill
                   sizes="400px"
-                  className="object-contain object-center sm:object-cover"
+                  className="object-cover object-center"
                   showLabel={false}
                 />
               ) : (
