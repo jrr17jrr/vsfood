@@ -27,7 +27,8 @@ import { ColorField } from "@/components/painel/color-field";
 import { StoreThemePreview } from "@/components/painel/store-theme-preview";
 import { restaurantAppearanceSchema, type RestaurantAppearanceInput } from "@/lib/validations/restaurant";
 import { resetThemeAction, updateAppearanceAction } from "@/lib/actions/painel/settings";
-import { uploadRestaurantBanner, uploadRestaurantLogo } from "@/lib/storage";
+import { uploadRestaurantBanner, uploadRestaurantLogo, LOGO_MAX_SIZE_MB, BANNER_MAX_SIZE_MB } from "@/lib/storage";
+import { IMAGE_ACCEPT } from "@/lib/upload-validation";
 import { parseStoreTheme, getContrastWarnings, THEME_PRESETS, DEFAULT_STORE_THEME } from "@/lib/theme/store-theme";
 import type { Restaurant } from "@/types/database";
 
@@ -86,8 +87,8 @@ export function AppearanceForm({ restaurant }: { restaurant: Restaurant }) {
     setUploadingLogo(true);
     try {
       setLogoUrl(await uploadRestaurantLogo(restaurant.id, file));
-    } catch {
-      toast.error("Não foi possível enviar a logo.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Não foi possível enviar a logo.");
     } finally {
       setUploadingLogo(false);
     }
@@ -99,8 +100,8 @@ export function AppearanceForm({ restaurant }: { restaurant: Restaurant }) {
     setUploadingBanner(true);
     try {
       setBannerUrl(await uploadRestaurantBanner(restaurant.id, file));
-    } catch {
-      toast.error("Não foi possível enviar o banner.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Não foi possível enviar o banner.");
     } finally {
       setUploadingBanner(false);
     }
@@ -151,7 +152,7 @@ export function AppearanceForm({ restaurant }: { restaurant: Restaurant }) {
               type="button"
               onClick={() => bannerInputRef.current?.click()}
               aria-label="Alterar banner"
-              className="relative flex aspect-[16/7] w-full items-center justify-center overflow-hidden rounded-2xl border border-dashed bg-muted sm:aspect-[8/2.4] sm:max-h-[320px]"
+              className="relative flex aspect-[16/5] w-full items-center justify-center overflow-hidden rounded-2xl border border-dashed bg-muted sm:max-h-[320px]"
             >
               {uploadingBanner ? (
                 <Loader2 className="size-5 animate-spin text-muted-foreground" />
@@ -195,11 +196,15 @@ export function AppearanceForm({ restaurant }: { restaurant: Restaurant }) {
               )}
             </button>
           </div>
-          <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoChange} />
-          <input ref={bannerInputRef} type="file" accept="image/*" className="hidden" onChange={handleBannerChange} />
-          <div className="mt-12 flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground sm:mt-16">
-            <p>Logo: tamanho recomendado 512x512px</p>
-            <p>Banner: tamanho recomendado 1920x720px</p>
+          <input ref={logoInputRef} type="file" accept={IMAGE_ACCEPT} className="hidden" onChange={handleLogoChange} />
+          <input ref={bannerInputRef} type="file" accept={IMAGE_ACCEPT} className="hidden" onChange={handleBannerChange} />
+          <div className="mt-12 flex flex-col flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground sm:mt-16 sm:flex-row">
+            <p>
+              Logo: tamanho recomendado 512 × 512 px · JPG, PNG ou WEBP • até {LOGO_MAX_SIZE_MB} MB
+            </p>
+            <p>
+              Banner: tamanho recomendado 1920 × 600 px (16:5) · JPG, PNG ou WEBP • até {BANNER_MAX_SIZE_MB} MB
+            </p>
           </div>
         </div>
       </section>
@@ -326,7 +331,7 @@ export function AppearanceForm({ restaurant }: { restaurant: Restaurant }) {
 
           <div className="lg:sticky lg:top-6">
             <p className="mb-2 text-sm font-semibold text-muted-foreground">Prévia</p>
-            <StoreThemePreview theme={watchedTheme} storeName={watchedName} />
+            <StoreThemePreview theme={watchedTheme} storeName={watchedName} bannerUrl={bannerUrl} logoUrl={logoUrl} />
           </div>
         </div>
       </section>

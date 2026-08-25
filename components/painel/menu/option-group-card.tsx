@@ -14,12 +14,15 @@ import {
   createOptionAction,
   deleteOptionGroupAction,
   reorderOptionGroupAction,
+  reorderOptionsBulkAction,
   updateOptionGroupAction,
 } from "@/lib/actions/painel/menu";
 import type { OptionGroupInput } from "@/lib/validations/menu";
 import type { MenuOptionGroup } from "@/lib/data/menu";
 import type { OptionGroupPricingMode } from "@/types/database";
 import { OptionRow } from "./option-row";
+import { SortableList } from "./sortable-list";
+import { SortableItem } from "./sortable-item";
 
 /** Nome padrão de grupo recém-criado — usado tanto pra criar quanto pra detectar "ainda não configurado" e abrir o accordion sozinho. */
 export const NEW_GROUP_NAME = "Novo grupo de adicionais";
@@ -101,6 +104,11 @@ export function OptionGroupCard({ group, onChange }: { group: MenuOptionGroup; o
     const result = await deleteOptionGroupAction(group.id);
     if (result?.error) toast.error(result.error);
     else onChange();
+  }
+
+  async function handleReorderOptions(orderedIds: string[]) {
+    await reorderOptionsBulkAction(group.id, orderedIds);
+    onChange();
   }
 
   async function handleAddOption() {
@@ -238,11 +246,15 @@ export function OptionGroupCard({ group, onChange }: { group: MenuOptionGroup; o
             <div className="space-y-2">
               <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Opções do grupo</p>
 
-              <div className="space-y-1.5">
-                {group.options.map((option) => (
-                  <OptionRow key={option.id} option={option} pricingMode={pricingMode} onChange={onChange} />
-                ))}
-              </div>
+              {group.options.length > 0 && (
+                <SortableList items={group.options} onReorder={handleReorderOptions} className="space-y-1.5">
+                  {(option) => (
+                    <SortableItem key={option.id} id={option.id} handleClassName="mt-2.5">
+                      <OptionRow option={option} pricingMode={pricingMode} onChange={onChange} />
+                    </SortableItem>
+                  )}
+                </SortableList>
+              )}
 
               <div className="flex flex-wrap gap-2 pt-1">
                 <Input

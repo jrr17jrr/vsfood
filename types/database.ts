@@ -6,6 +6,8 @@
 // via tipos condicionais, e `interface` não satisfaz essa checagem estrutural
 // contra `Record<string, unknown>` da mesma forma que um alias de objeto.
 
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
+
 export type UserRole = "customer" | "restaurant_owner" | "admin";
 export type RestaurantStatus = "trial" | "active" | "expired" | "suspended";
 export type RestaurantRole = "owner" | "staff";
@@ -154,6 +156,8 @@ export type Product = Timestamps & {
   available: boolean;
   featured: boolean;
   order: number;
+  unlimited_stock: boolean;
+  stock_quantity: number;
 };
 
 export type OptionGroupPricingMode = "no_charge" | "per_option" | "free_first_n" | "highest_only" | "fixed_price";
@@ -383,6 +387,11 @@ export type Database = {
       trial_settings: TableDef<TrialSettings, object>;
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      decrement_products_stock: { Args: { p_items: Json }; Returns: void };
+      restore_products_stock: { Args: { p_items: Json }; Returns: void };
+      duplicate_product: { Args: { p_product_id: string; p_restaurant_id: string }; Returns: string };
+      duplicate_category: { Args: { p_category_id: string; p_restaurant_id: string }; Returns: string };
+    };
   };
 };

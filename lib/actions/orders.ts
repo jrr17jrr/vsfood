@@ -226,6 +226,33 @@ export async function createOrderAction(input: CreateOrderInput): Promise<Create
     return { error: "Informe um valor de troco válido." };
   }
 
+  // --- estoque: valida e decrementa de forma atômica, sempre a partir do
+  // banco (nunca confia no client) — a soma de quantidade por produto
+  // cobre o caso de dois itens do carrinho serem o mesmo produto com
+  // adicionais diferentes. O pré-check aqui só existe pra dar uma mensagem
+  // de erro melhor; a garantia real de não ficar negativo em concorrência
+  // é o UPDATE condicional dentro de decrement_products_stock (ver
+  // supabase/migrations/20260826000001_product_stock.sql), chamado uma
+  // única vez com todos os produtos — se qualquer um não tiver estoque
+  // suficiente no momento exato do UPDATE, a function inteira falha e
+  // nenhum produto é decrementado.
+  const quantityByProduct = new Map<string, number>();
+  for (const item of resolvedItems) {
+    quantityByProduct.set(item.productId, (quantityByProduct.get(item.productId) ?? 0) + item.quantity);
+  }
+  for (const [productId, quantity] of quantityByProduct) {
+    const product = productMap.get(productId);
+    if (product && !product.unlimited_stock && product.stock_quantity < quantity) {
+      return { error: `Estoque insuficiente para "${product.name}". Disponível: ${product.stock_quantity}.` };
+    }
+  }
+  const { error: stockError } = await db.rpc("decrement_products_stock", {
+    p_items: Array.from(quantityByProduct.entries()).map(([product_id, quantity]) => ({ product_id, quantity })),
+  });
+  if (stockError) {
+    return { error: "Estoque insuficiente para um ou mais itens. Atualize o carrinho e tente novamente." };
+  }
+
   const { data: order, error: orderError } = await db
     .from("orders")
     .insert({
@@ -247,7 +274,15 @@ export async function createOrderAction(input: CreateOrderInput): Promise<Create
     .select("id, number")
     .single();
 
-  if (orderError || !order) return { error: "Não foi possível criar o pedido. Tente novamente." };
+  if (orderError || !order) {
+    // O estoque já tinha sido decrementado acima — como o pedido em si não
+    // foi criado, devolve pro estoque em vez de deixar a quantidade
+    // "perdida".
+    await db.rpc("restore_products_stock", {
+      p_items: Array.from(quantityByProduct.entries()).map(([product_id, quantity]) => ({ product_id, quantity })),
+    });
+    return { error: "Não foi possível criar o pedido. Tente novamente." };
+  }
 
   const { data: insertedItems, error: itemsError } = await db
     .from("order_items")
@@ -264,7 +299,12 @@ export async function createOrderAction(input: CreateOrderInput): Promise<Create
     )
     .select("id, product_id");
 
-  if (itemsError || !insertedItems) return { error: "Não foi possível registrar os itens do pedido." };
+  if (itemsError || !insertedItems) {
+    await db.rpc("restore_products_stock", {
+      p_items: Array.from(quantityByProduct.entries()).map(([product_id, quantity]) => ({ product_id, quantity })),
+    });
+    return { error: "Não foi possível registrar os itens do pedido." };
+  }
 
   const optionRows = insertedItems.flatMap((inserted) => {
     const original = resolvedItems.find((i) => i.productId === inserted.product_id);

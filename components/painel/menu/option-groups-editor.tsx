@@ -4,10 +4,12 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { createOptionGroupAction } from "@/lib/actions/painel/menu";
+import { createOptionGroupAction, reorderOptionGroupsBulkAction } from "@/lib/actions/painel/menu";
 import type { OptionGroupInput } from "@/lib/validations/menu";
 import type { MenuOptionGroup } from "@/lib/data/menu";
 import { OptionGroupCard, NEW_GROUP_NAME } from "./option-group-card";
+import { SortableList } from "./sortable-list";
+import { SortableItem } from "./sortable-item";
 
 const DEFAULT_GROUP_INPUT: OptionGroupInput = {
   name: NEW_GROUP_NAME,
@@ -31,6 +33,11 @@ export function OptionGroupsEditor({ productId, groups }: { productId: string; g
     router.refresh();
   }
 
+  async function handleReorder(orderedIds: string[]) {
+    await reorderOptionGroupsBulkAction(productId, orderedIds);
+    router.refresh();
+  }
+
   return (
     <div className="min-w-0 space-y-4">
       <div>
@@ -45,11 +52,13 @@ export function OptionGroupsEditor({ productId, groups }: { productId: string; g
           Nenhum grupo de adicionais ainda.
         </p>
       ) : (
-        <div className="space-y-2.5">
-          {groups.map((group) => (
-            <OptionGroupCard key={group.id} group={group} onChange={() => router.refresh()} />
-          ))}
-        </div>
+        <SortableList items={groups} onReorder={handleReorder} className="space-y-2.5">
+          {(group) => (
+            <SortableItem key={group.id} id={group.id} handleClassName="mt-4">
+              <OptionGroupCard group={group} onChange={() => router.refresh()} />
+            </SortableItem>
+          )}
+        </SortableList>
       )}
 
       <Button type="button" variant="outline" className="w-full" onClick={handleCreateGroup}>

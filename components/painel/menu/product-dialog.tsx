@@ -36,6 +36,8 @@ export function ProductDialog({
   const [categoryId, setCategoryId] = useState(product?.category_id ?? defaultCategoryId ?? "");
   const [available, setAvailable] = useState(product?.available ?? true);
   const [featured, setFeatured] = useState(product?.featured ?? false);
+  const [unlimitedStock, setUnlimitedStock] = useState(product?.unlimited_stock ?? true);
+  const [stockQuantity, setStockQuantity] = useState(String(product?.stock_quantity ?? 0));
   const [imageUrl, setImageUrl] = useState(product?.image_url ?? "");
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -47,8 +49,8 @@ export function ProductDialog({
     try {
       const url = await uploadProductImage(restaurantId, file);
       setImageUrl(url);
-    } catch {
-      toast.error("Não foi possível enviar a imagem.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Não foi possível enviar a imagem.");
     } finally {
       setUploading(false);
     }
@@ -64,6 +66,11 @@ export function ProductDialog({
       toast.error("Informe um preço válido.");
       return;
     }
+    const stockQuantityNumber = Math.trunc(Number(stockQuantity));
+    if (!unlimitedStock && (Number.isNaN(stockQuantityNumber) || stockQuantityNumber < 0)) {
+      toast.error("Informe uma quantidade em estoque válida.");
+      return;
+    }
 
     setSaving(true);
     const input = {
@@ -75,6 +82,8 @@ export function ProductDialog({
       imageUrl: imageUrl || null,
       available,
       featured,
+      unlimitedStock,
+      stockQuantity: unlimitedStock ? 0 : stockQuantityNumber,
     };
 
     const result = product ? await updateProductAction(product.id, input) : await createProductAction(input);
@@ -115,6 +124,10 @@ export function ProductDialog({
               onAvailableChange={setAvailable}
               featured={featured}
               onFeaturedChange={setFeatured}
+              unlimitedStock={unlimitedStock}
+              onUnlimitedStockChange={setUnlimitedStock}
+              stockQuantity={stockQuantity}
+              onStockQuantityChange={setStockQuantity}
               imageUrl={imageUrl}
               uploading={uploading}
               onImageClick={() => fileInputRef.current?.click()}

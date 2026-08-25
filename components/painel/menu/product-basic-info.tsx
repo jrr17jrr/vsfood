@@ -8,6 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ImageWithFallback } from "@/components/shared/image-with-fallback";
+import { IMAGE_ACCEPT } from "@/lib/upload-validation";
+import { PRODUCT_IMAGE_MAX_SIZE_MB } from "@/lib/storage";
 import type { MenuCategory } from "@/lib/data/menu";
 
 /**
@@ -30,6 +32,10 @@ export function ProductBasicInfo({
   onAvailableChange,
   featured,
   onFeaturedChange,
+  unlimitedStock,
+  onUnlimitedStockChange,
+  stockQuantity,
+  onStockQuantityChange,
   imageUrl,
   uploading,
   onImageClick,
@@ -51,6 +57,10 @@ export function ProductBasicInfo({
   onAvailableChange: (v: boolean) => void;
   featured: boolean;
   onFeaturedChange: (v: boolean) => void;
+  unlimitedStock: boolean;
+  onUnlimitedStockChange: (v: boolean) => void;
+  stockQuantity: string;
+  onStockQuantityChange: (v: string) => void;
   imageUrl: string;
   uploading: boolean;
   onImageClick: () => void;
@@ -82,8 +92,12 @@ export function ProductBasicInfo({
             <Pencil className="size-3.5" />
           </span>
         </button>
-        <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={onImageChange} />
-        <p className="text-xs text-muted-foreground">Clique na foto para enviar uma nova imagem.</p>
+        <input ref={fileInputRef} type="file" accept={IMAGE_ACCEPT} className="hidden" onChange={onImageChange} />
+        <div className="text-xs text-muted-foreground">
+          <p>Clique na foto para enviar uma nova imagem.</p>
+          <p className="mt-0.5">Tamanho recomendado: 800 × 800 px</p>
+          <p>JPG, PNG ou WEBP • até {PRODUCT_IMAGE_MAX_SIZE_MB} MB</p>
+        </div>
       </div>
 
       <div className="space-y-1.5">
@@ -136,6 +150,33 @@ export function ProductBasicInfo({
           </Label>
           <Switch id="p-featured" checked={featured} onCheckedChange={onFeaturedChange} />
         </div>
+      </div>
+
+      <div className="space-y-2.5 rounded-lg border bg-muted/30 p-3">
+        <div className="flex items-center justify-between">
+          <Label htmlFor="p-unlimited-stock" className="text-sm font-normal">
+            Estoque ilimitado
+          </Label>
+          <Switch id="p-unlimited-stock" checked={unlimitedStock} onCheckedChange={onUnlimitedStockChange} />
+        </div>
+        {!unlimitedStock && (
+          <div className="space-y-1.5">
+            <Label htmlFor="p-stock-qty" className="text-xs">
+              Quantidade em estoque
+            </Label>
+            <Input
+              id="p-stock-qty"
+              type="number"
+              min={0}
+              step={1}
+              value={stockQuantity}
+              onChange={(e) => onStockQuantityChange(e.target.value)}
+            />
+            {Number(stockQuantity) <= 0 && (
+              <p className="text-xs font-medium text-destructive">Com 0 em estoque o produto aparece como Esgotado na loja.</p>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

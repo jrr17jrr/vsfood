@@ -14,6 +14,8 @@ export const productInputSchema = z.object({
   imageUrl: z.string().trim().nullable().optional(),
   available: z.boolean(),
   featured: z.boolean(),
+  unlimitedStock: z.boolean(),
+  stockQuantity: z.number().int("Estoque precisa ser um número inteiro").min(0, "Estoque não pode ser negativo"),
 });
 export type ProductInput = z.infer<typeof productInputSchema>;
 

@@ -66,9 +66,21 @@ function AccordionContent({
       className="overflow-hidden text-sm data-open:animate-accordion-down data-closed:animate-accordion-up"
       {...props}
     >
+      {/*
+        Sem h-(--radix-accordion-content-height) aqui: essa variável só é
+        recalculada por getBoundingClientRect() quando o item abre/fecha
+        (ver node_modules/@radix-ui/react-collapsible — useLayoutEffect com
+        deps [context.open, present]), nunca de novo enquanto ele já está
+        aberto. Fixar a altura nela travava o conteúdo na medida do momento
+        da abertura — qualquer opção/grupo adicionado depois ficava cortado
+        pelo overflow-hidden do elemento pai. A animação de abrir/fechar
+        continua funcionando (ela anima o elemento pai via
+        data-open:animate-accordion-down), só a altura em regime (aberto)
+        agora é automática, acompanhando o conteúdo real.
+      */}
       <div
         className={cn(
-          "h-(--radix-accordion-content-height) pt-0 pb-2.5 [&_a]:underline [&_a]:underline-offset-3 [&_a]:hover:text-foreground [&_p:not(:last-child)]:mb-4",
+          "pt-0 pb-2.5 [&_a]:underline [&_a]:underline-offset-3 [&_a]:hover:text-foreground [&_p:not(:last-child)]:mb-4",
           className
         )}
       >

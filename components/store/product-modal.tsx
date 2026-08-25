@@ -60,6 +60,7 @@ export function ProductModal({
   const groupRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const basePrice = product ? (product.promo_price ?? product.price) : 0;
+  const soldOut = product ? !product.unlimited_stock && product.stock_quantity <= 0 : false;
 
   // Cobrança efetiva de cada opção selecionada, por grupo — única fonte de
   // verdade tanto pro total exibido quanto pro que é enviado ao carrinho.
@@ -138,7 +139,7 @@ export function ProductModal({
   }
 
   function handleAdd() {
-    if (!product) return;
+    if (!product || soldOut) return;
     setAttemptedSubmit(true);
 
     const invalid = product.optionGroups.filter((g) => (selections[g.id] ?? []).length < g.min_select);
@@ -179,7 +180,10 @@ export function ProductModal({
                 <ImageWithFallback src={product.image_url} alt={product.name} fill sizes="600px" className="object-cover" showLabel={false} />
               </div>
             )}
-            <DialogTitle className="text-[var(--store-text)]">{product.name}</DialogTitle>
+            <div className="flex flex-wrap items-center gap-2">
+              <DialogTitle className="text-[var(--store-text)]">{product.name}</DialogTitle>
+              {soldOut && <Badge variant="secondary">Esgotado</Badge>}
+            </div>
             {product.description && (
               <DialogDescription className="text-[var(--store-text-muted)]">{product.description}</DialogDescription>
             )}
@@ -314,6 +318,7 @@ export function ProductModal({
                 type="button"
                 size="icon"
                 variant="ghost"
+                disabled={soldOut}
                 className="rounded-full text-[var(--store-text)] hover:bg-[var(--store-category-bg)] hover:text-[var(--store-text)]"
                 onClick={() => setQuantity((q) => Math.max(1, q - 1))}
               >
@@ -324,6 +329,7 @@ export function ProductModal({
                 type="button"
                 size="icon"
                 variant="ghost"
+                disabled={soldOut}
                 className="rounded-full text-[var(--store-text)] hover:bg-[var(--store-category-bg)] hover:text-[var(--store-text)]"
                 onClick={() => setQuantity((q) => q + 1)}
               >
@@ -333,10 +339,11 @@ export function ProductModal({
             <Button
               className="min-w-0 flex-1 whitespace-normal"
               size="lg"
-              style={{ backgroundColor: "var(--store-button)", color: "var(--store-button-text)" }}
+              disabled={soldOut}
+              style={soldOut ? undefined : { backgroundColor: "var(--store-button)", color: "var(--store-button-text)" }}
               onClick={handleAdd}
             >
-              Adicionar · {formatCurrencyBRL(totalPrice)}
+              {soldOut ? "Produto esgotado" : `Adicionar · ${formatCurrencyBRL(totalPrice)}`}
             </Button>
           </DialogFooter>
         </div>

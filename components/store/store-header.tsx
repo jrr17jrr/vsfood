@@ -19,15 +19,15 @@ export function StoreHeader({
   return (
     <div className="bg-[var(--store-header)]">
       {/*
-        Ratio por breakpoint: a arte é horizontal (pouca altura útil), então
-        object-contain deixava tarjas vazias enormes acima/abaixo no mobile.
-        aspect-[16/7] é bem mais largo que alto no mobile e usamos object-cover
-        nos dois breakpoints — cropa um pouco as laterais em vez de sobrar
-        espaço vazio, o que lê melhor numa arte horizontal. No desktop
-        aspect-[8/2.4] + max-h-[320px] mantêm o banner baixo mesmo em telas
-        muito largas (o container é full-bleed, sem max-width).
+        Padrão oficial do banner VSFood: 1920×600px, proporção 16:5 — mesmo
+        aspect-ratio no mobile e no desktop (consistência de ponta a ponta
+        com o preview de /painel/aparencia), sempre com object-cover: uma
+        arte 1920x600 bem enquadrada nunca precisa de "tarja" vazia, só um
+        crop leve nas laterais em telas muito estreitas ou muito largas.
+        max-h evita o banner ficar gigante em telas muito largas (o container
+        é full-bleed, sem max-width).
       */}
-      <div className="relative aspect-[16/7] w-full overflow-hidden bg-gradient-to-br from-[var(--store-primary)] to-[var(--store-secondary)] sm:aspect-[8/2.4] sm:max-h-[320px]">
+      <div className="relative aspect-[16/5] w-full overflow-hidden bg-gradient-to-br from-[var(--store-primary)] to-[var(--store-secondary)] sm:max-h-[320px]">
         {restaurant.banner_url && (
           <ImageWithFallback
             src={restaurant.banner_url}

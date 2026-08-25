@@ -112,6 +112,8 @@ export async function createProductAction(input: ProductInput): Promise<Result> 
     image_url: parsed.data.imageUrl || null,
     available: parsed.data.available,
     featured: parsed.data.featured,
+    unlimited_stock: parsed.data.unlimitedStock,
+    stock_quantity: parsed.data.stockQuantity,
     order: count ?? 0,
   });
 
@@ -137,6 +139,8 @@ export async function updateProductAction(id: string, input: ProductInput): Prom
       image_url: parsed.data.imageUrl || null,
       available: parsed.data.available,
       featured: parsed.data.featured,
+      unlimited_stock: parsed.data.unlimitedStock,
+      stock_quantity: parsed.data.stockQuantity,
     })
     .eq("id", id);
 
@@ -301,6 +305,104 @@ export async function deleteOptionAction(id: string): Promise<Result> {
   const supabase = await createClient();
   const { error } = await supabase.from("product_options").delete().eq("id", id);
   if (error) return { error: "Não foi possível excluir o adicional." };
+  revalidateMenu();
+  return {};
+}
+
+// --- duplicação ---------------------------------------------------------
+
+/**
+ * Duplica produto + grupos de adicionais + opções, tudo com IDs novos.
+ * A cópia inteira roda dentro de uma única function no banco (transação
+ * atômica) — ver supabase/migrations/20260826000002_duplicate_menu_rpc.sql.
+ */
+export async function duplicateProductAction(id: string): Promise<Result> {
+  const { restaurantId } = await requireRestaurantMembership();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("duplicate_product", { p_product_id: id, p_restaurant_id: restaurantId });
+  if (error) return { error: "Não foi possível duplicar o produto." };
+  revalidateMenu();
+  return {};
+}
+
+/** Duplica a categoria e todos os produtos (com adicionais/opções) dela — mesma lógica atômica do produto. */
+export async function duplicateCategoryAction(id: string): Promise<Result> {
+  const { restaurantId } = await requireRestaurantMembership();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("duplicate_category", { p_category_id: id, p_restaurant_id: restaurantId });
+  if (error) return { error: "Não foi possível duplicar a categoria." };
+  revalidateMenu();
+  return {};
+}
+
+// --- estoque --------------------------------------------------------------
+
+/** Atalho da listagem: zera o estoque sem precisar abrir o modal de edição. Só faz sentido pra produto de estoque limitado. */
+export async function markProductSoldOutAction(id: string): Promise<Result> {
+  await requireRestaurantMembership();
+  const supabase = await createClient();
+  const { error } = await supabase.from("products").update({ stock_quantity: 0 }).eq("id", id);
+  if (error) return { error: "Não foi possível marcar como esgotado." };
+  revalidateMenu();
+  return {};
+}
+
+// --- reorder em lote (drag-and-drop) ---------------------------------------
+// Reaproveita o mesmo campo "order" e o mesmo revalidateMenu() das ações de
+// subir/descer acima — só troca a troca de par adjacente por "aplica o
+// índice de cada id na nova ordem completa", que é o que o drag-and-drop
+// solto pelo usuário produz. As setas de subir/descer continuam existindo
+// como fallback de acessibilidade.
+
+export async function reorderCategoriesAction(orderedIds: string[]): Promise<Result> {
+  const { restaurantId } = await requireRestaurantMembership();
+  const supabase = await createClient();
+  await Promise.all(
+    orderedIds.map((id, index) =>
+      supabase.from("categories").update({ order: index }).eq("id", id).eq("restaurant_id", restaurantId),
+    ),
+  );
+  revalidateMenu();
+  return {};
+}
+
+export async function reorderProductsAction(categoryId: string, orderedIds: string[]): Promise<Result> {
+  const { restaurantId } = await requireRestaurantMembership();
+  const supabase = await createClient();
+  await Promise.all(
+    orderedIds.map((id, index) =>
+      supabase
+        .from("products")
+        .update({ order: index })
+        .eq("id", id)
+        .eq("restaurant_id", restaurantId)
+        .eq("category_id", categoryId),
+    ),
+  );
+  revalidateMenu();
+  return {};
+}
+
+export async function reorderOptionGroupsBulkAction(productId: string, orderedIds: string[]): Promise<Result> {
+  await requireRestaurantMembership();
+  const supabase = await createClient();
+  await Promise.all(
+    orderedIds.map((id, index) =>
+      supabase.from("product_option_groups").update({ order: index }).eq("id", id).eq("product_id", productId),
+    ),
+  );
+  revalidateMenu();
+  return {};
+}
+
+export async function reorderOptionsBulkAction(groupId: string, orderedIds: string[]): Promise<Result> {
+  await requireRestaurantMembership();
+  const supabase = await createClient();
+  await Promise.all(
+    orderedIds.map((id, index) =>
+      supabase.from("product_options").update({ order: index }).eq("id", id).eq("group_id", groupId),
+    ),
+  );
   revalidateMenu();
   return {};
 }
