@@ -2,7 +2,7 @@ import "server-only";
 
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
-import type { Order, Restaurant } from "@/types/database";
+import type { Order, OrderItem, OrderItemOption, Restaurant } from "@/types/database";
 
 /**
  * `cache()` dedupe por request: tanto app/painel/layout.tsx quanto a page.tsx
@@ -109,4 +109,40 @@ export async function getPainelOrders(restaurantId: string, limit = 100): Promis
     const customer = profileMap.get(o.customer_id);
     return { ...o, customer_name: customer?.name ?? "Cliente", customer_whatsapp: customer?.whatsapp ?? null };
   });
+}
+
+export type PainelOrderDetail = PainelOrder & { items: (OrderItem & { options: OrderItemOption[] })[] };
+
+/**
+ * Detalhe completo de UM pedido, sempre escopado por restaurant_id (nunca
+ * confia só na RLS) — usado pela comanda imprimível
+ * (/painel/pedidos/[id]/imprimir). Loja nunca acessa pedido de outra: o
+ * `.eq("restaurant_id", restaurantId)` já garante isso na própria query.
+ */
+export async function getPainelOrderDetail(restaurantId: string, orderId: string): Promise<PainelOrderDetail | null> {
+  const supabase = await createClient();
+  const { data: order } = await supabase
+    .from("orders")
+    .select("*")
+    .eq("id", orderId)
+    .eq("restaurant_id", restaurantId)
+    .maybeSingle();
+  if (!order) return null;
+
+  const [{ data: profile }, { data: items }] = await Promise.all([
+    supabase.from("profiles").select("name, whatsapp").eq("id", order.customer_id).maybeSingle(),
+    supabase.from("order_items").select("*").eq("order_id", orderId),
+  ]);
+
+  const itemIds = (items ?? []).map((i) => i.id);
+  const { data: options } = itemIds.length
+    ? await supabase.from("order_item_options").select("*").in("order_item_id", itemIds)
+    : { data: [] };
+
+  return {
+    ...order,
+    customer_name: profile?.name ?? "Cliente",
+    customer_whatsapp: profile?.whatsapp ?? null,
+    items: (items ?? []).map((i) => ({ ...i, options: (options ?? []).filter((o) => o.order_item_id === i.id) })),
+  };
 }

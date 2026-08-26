@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Pencil, Plus, Ticket, Trash2 } from "lucide-react";
+import { Copy, Pencil, Plus, Ticket, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -19,15 +19,35 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { CouponForm } from "./coupon-form";
-import { createCouponAction, deleteCouponAction, updateCouponAction } from "@/lib/actions/painel/coupons";
+import {
+  createCouponAction,
+  deleteCouponAction,
+  getCouponWithLinksAction,
+  updateCouponAction,
+  type CouponWithLinks,
+} from "@/lib/actions/painel/coupons";
 import { formatCurrencyBRL } from "@/lib/format";
 import type { Coupon } from "@/types/database";
 import type { CouponInput } from "@/lib/validations/coupon";
+import type { MenuCategory } from "@/lib/data/menu";
 
-export function CouponsManager({ coupons }: { coupons: Coupon[] }) {
+function couponSummary(coupon: Coupon): string {
+  const discount =
+    coupon.type === "percent"
+      ? `${coupon.value}% off`
+      : coupon.type === "fixed"
+        ? `${formatCurrencyBRL(coupon.value)} off`
+        : "Frete grátis";
+  const parts = [discount, `pedido mín. ${formatCurrencyBRL(coupon.min_order_value)}`];
+  if (coupon.usage_limit) parts.push(`${coupon.used_count}/${coupon.usage_limit} usos`);
+  return parts.join(" · ");
+}
+
+export function CouponsManager({ coupons, menu }: { coupons: Coupon[]; menu: MenuCategory[] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Coupon | null>(null);
+  const [duplicateFrom, setDuplicateFrom] = useState<CouponWithLinks | undefined>(undefined);
 
   async function handleSubmit(values: CouponInput) {
     const result = editing ? await updateCouponAction(editing.id, values) : await createCouponAction(values);
@@ -49,6 +69,17 @@ export function CouponsManager({ coupons }: { coupons: Coupon[] }) {
     router.refresh();
   }
 
+  async function handleDuplicate(coupon: Coupon) {
+    const withLinks = await getCouponWithLinksAction(coupon.id);
+    if (!withLinks) {
+      toast.error("Não foi possível duplicar o cupom.");
+      return;
+    }
+    setEditing(null);
+    setDuplicateFrom(withLinks);
+    setOpen(true);
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between">
@@ -57,11 +88,12 @@ export function CouponsManager({ coupons }: { coupons: Coupon[] }) {
           size="sm"
           onClick={() => {
             setEditing(null);
+            setDuplicateFrom(undefined);
             setOpen(true);
           }}
         >
           <Plus className="size-4" />
-          Novo cupom
+          Criar cupom
         </Button>
       </div>
 
@@ -80,18 +112,19 @@ export function CouponsManager({ coupons }: { coupons: Coupon[] }) {
                   <p className="font-mono font-semibold">{coupon.code}</p>
                   <Badge variant={coupon.active ? "default" : "secondary"}>{coupon.active ? "Ativo" : "Inativo"}</Badge>
                 </div>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {coupon.type === "percent" ? `${coupon.value}% off` : `${formatCurrencyBRL(coupon.value)} off`} · pedido mín.{" "}
-                  {formatCurrencyBRL(coupon.min_order_value)}
-                  {coupon.usage_limit ? ` · ${coupon.used_count}/${coupon.usage_limit} usos` : ""}
-                </p>
+                <p className="mt-1 text-sm text-muted-foreground">{couponSummary(coupon)}</p>
               </div>
               <div className="flex shrink-0 gap-1">
+                <Button size="icon" variant="ghost" title="Duplicar" onClick={() => handleDuplicate(coupon)}>
+                  <Copy className="size-4" />
+                </Button>
                 <Button
                   size="icon"
                   variant="ghost"
+                  title="Editar"
                   onClick={() => {
                     setEditing(coupon);
+                    setDuplicateFrom(undefined);
                     setOpen(true);
                   }}
                 >
@@ -99,7 +132,7 @@ export function CouponsManager({ coupons }: { coupons: Coupon[] }) {
                 </Button>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button size="icon" variant="ghost">
+                    <Button size="icon" variant="ghost" title="Excluir">
                       <Trash2 className="size-4" />
                     </Button>
                   </AlertDialogTrigger>
@@ -121,11 +154,11 @@ export function CouponsManager({ coupons }: { coupons: Coupon[] }) {
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editing ? "Editar cupom" : "Novo cupom"}</DialogTitle>
+            <DialogTitle>{editing ? "Editar cupom" : duplicateFrom ? "Duplicar cupom" : "Criar cupom"}</DialogTitle>
           </DialogHeader>
-          <CouponForm coupon={editing ?? undefined} onSubmit={handleSubmit} />
+          <CouponForm coupon={editing ?? undefined} duplicateFrom={duplicateFrom} menu={menu} onSubmit={handleSubmit} />
         </DialogContent>
       </Dialog>
     </div>

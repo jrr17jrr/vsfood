@@ -7,14 +7,22 @@ import { formatCurrencyBRL } from "@/lib/format";
 import { cartItemCount, cartSubtotal, useCartStore } from "@/lib/store/cart";
 import { CartSheet } from "./cart-sheet";
 
-export function CartWidget({ minOrderValue }: { minOrderValue: number }) {
+export function CartWidget({
+  minOrderValue,
+  freeShippingThreshold,
+}: {
+  minOrderValue: number;
+  freeShippingThreshold: number | null;
+}) {
   const [open, setOpen] = useState(false);
   const items = useCartStore((s) => s.items);
   const count = cartItemCount(items);
   const subtotal = cartSubtotal(items);
 
   if (count === 0) {
-    return <CartSheet open={open} onOpenChange={setOpen} minOrderValue={minOrderValue} />;
+    return (
+      <CartSheet open={open} onOpenChange={setOpen} minOrderValue={minOrderValue} freeShippingThreshold={freeShippingThreshold} />
+    );
   }
 
   return (
@@ -44,7 +52,7 @@ export function CartWidget({ minOrderValue }: { minOrderValue: number }) {
         {count} {count === 1 ? "item" : "itens"} • {formatCurrencyBRL(subtotal)}
       </Button>
 
-      <CartSheet open={open} onOpenChange={setOpen} minOrderValue={minOrderValue} />
+      <CartSheet open={open} onOpenChange={setOpen} minOrderValue={minOrderValue} freeShippingThreshold={freeShippingThreshold} />
     </>
   );
 }

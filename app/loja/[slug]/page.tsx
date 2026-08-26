@@ -40,7 +40,12 @@ export default async function StorePage({ params }: Props) {
 
   const { restaurant, categories, openingHours, deliveryZones } = data;
   const openStatus = getOpenStatus(openingHours);
-  const minDeliveryFee = deliveryZones.length > 0 ? Math.min(...deliveryZones.map((z) => z.fee)) : null;
+  const minDeliveryFee =
+    restaurant.delivery_charge_mode === "neighborhood"
+      ? deliveryZones.length > 0
+        ? Math.min(...deliveryZones.map((z) => z.fee))
+        : null
+      : (restaurant.delivery_base_fee ?? null);
   const theme = parseStoreTheme(restaurant.theme);
   const themeStyle = storeThemeToCssVars(theme);
 
@@ -60,7 +65,7 @@ export default async function StorePage({ params }: Props) {
           <ProductCatalog categories={categories} themeStyle={themeStyle} />
         )}
       </main>
-      <CartWidget minOrderValue={restaurant.min_order_value} />
+      <CartWidget minOrderValue={restaurant.min_order_value} freeShippingThreshold={restaurant.free_shipping_threshold} />
       <StoreFooter restaurant={restaurant} />
     </div>
   );

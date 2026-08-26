@@ -8,7 +8,11 @@ export const addressInputSchema = z.object({
   complement: z.string().trim().optional(),
   neighborhood: z.string().trim().min(2, "Informe o bairro"),
   city: z.string().trim().min(2, "Informe a cidade"),
-  state: z.string().trim().optional(),
+  state: z
+    .string()
+    .trim()
+    .length(2, "Informe a UF (2 letras)")
+    .transform((v) => v.toUpperCase()),
   reference: z.string().trim().optional(),
 });
 export type AddressInput = z.infer<typeof addressInputSchema>;

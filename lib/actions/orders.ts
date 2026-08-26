@@ -4,13 +4,16 @@ import { randomUUID } from "node:crypto";
 import { requireCustomer } from "@/lib/auth";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { createOrderSchema, type CreateOrderInput } from "@/lib/validations/checkout";
-import { applyFreeShipping, evaluateCoupon, matchDeliveryZone, roundCurrency } from "@/lib/orders/pricing";
-import { calculateGroupCharges } from "@/lib/pricing/option-groups";
+import { applyFreeShipping, evaluateCoupon, roundCurrency } from "@/lib/orders/pricing";
+import { resolveDeliveryQuote } from "@/lib/orders/delivery-pricing";
+import { resolveOrderItems } from "@/lib/orders/resolve-items";
+import { geocodeAddress } from "@/lib/geocoding/nominatim";
 import { getOpenStatus } from "@/lib/opening-hours";
 import { getValidAccessToken } from "@/lib/mercadopago/connection";
 import { getRestaurantConfig } from "@/lib/mercadopago/client";
 import { createCardPayment, createPixPayment, mapMpStatusToPaymentStatus } from "@/lib/mercadopago/payments";
-import type { AddressSnapshot, PaymentStatus } from "@/types/database";
+import { restaurantHasFeature } from "@/lib/plans/features";
+import type { AddressSnapshot, CustomerAddress, PaymentStatus } from "@/types/database";
 
 type CreateOrderResult =
   | { orderId: string; orderNumber: number; paymentStatus: PaymentStatus; paymentError?: string }
@@ -50,6 +53,9 @@ export async function createOrderAction(input: CreateOrderInput): Promise<Create
   let restaurantAccessToken: string | null = null;
 
   if (isOnlinePayment) {
+    if (!(await restaurantHasFeature(restaurant.id, "online_payment"))) {
+      return { error: "Pagamento online disponível apenas no plano Pro." };
+    }
     restaurantAccessToken = await getValidAccessToken(restaurant.id);
     if (!restaurantAccessToken) return { error: "Este restaurante ainda não aceita pagamento online." };
     if (data.paymentMethod === "card_online" && !data.card) {
@@ -58,103 +64,9 @@ export async function createOrderAction(input: CreateOrderInput): Promise<Create
   }
 
   // --- valida itens e recalcula preços a partir do banco (nunca confia no total do client) ---
-  const productIds = [...new Set(data.items.map((i) => i.productId))];
-  const { data: products } = await db
-    .from("products")
-    .select("*")
-    .eq("restaurant_id", restaurant.id)
-    .in("id", productIds);
-
-  const productMap = new Map((products ?? []).map((p) => [p.id, p]));
-
-  const { data: groups } = await db.from("product_option_groups").select("*").in("product_id", productIds);
-  const groupMap = new Map((groups ?? []).map((g) => [g.id, g]));
-
-  const groupIds = (groups ?? []).map((g) => g.id);
-  const { data: options } = groupIds.length
-    ? await db.from("product_options").select("*").in("group_id", groupIds)
-    : { data: [] };
-  const optionMap = new Map((options ?? []).map((o) => [o.id, o]));
-
-  type ResolvedItem = {
-    productId: string;
-    name: string;
-    unitPrice: number;
-    quantity: number;
-    notes: string;
-    subtotal: number;
-    options: { groupName: string; optionName: string; price: number }[];
-  };
-
-  const resolvedItems: ResolvedItem[] = [];
-
-  for (const item of data.items) {
-    const product = productMap.get(item.productId);
-    if (!product || !product.available) return { error: "Um dos produtos não está mais disponível." };
-
-    const productGroups = (groups ?? []).filter((g) => g.product_id === product.id);
-    const selectedByGroup = new Map<string, string[]>();
-    for (const sel of item.optionIds) {
-      const group = groupMap.get(sel.groupId);
-      const option = optionMap.get(sel.optionId);
-      if (!group || group.product_id !== product.id) return { error: "Adicional inválido." };
-      if (!option || option.group_id !== group.id || !option.available) {
-        return { error: "Um dos adicionais não está mais disponível." };
-      }
-      const list = selectedByGroup.get(group.id) ?? [];
-      list.push(option.id);
-      selectedByGroup.set(group.id, list);
-    }
-
-    for (const group of productGroups) {
-      const count = (selectedByGroup.get(group.id) ?? []).length;
-      if (group.required && count < Math.max(group.min_select, 1)) {
-        return { error: `Selecione uma opção em "${group.name}" (${product.name}).` };
-      }
-      if (count < group.min_select) {
-        return { error: `Selecione ao menos ${group.min_select} opções em "${group.name}" (${product.name}).` };
-      }
-      if (count > group.max_select) {
-        return { error: `Selecione no máximo ${group.max_select} opções em "${group.name}" (${product.name}).` };
-      }
-    }
-
-    const basePrice = product.promo_price ?? product.price;
-
-    // Nunca confia no `price` que o client mandou — recalcula a cobrança de
-    // cada opção a partir da regra real do grupo (banco), preservando a
-    // ordem de seleção enviada (importa pra free_first_n: as N primeiras da
-    // lista ficam grátis).
-    const resolvedOptions = productGroups.flatMap((group) => {
-      const selectedIds = selectedByGroup.get(group.id) ?? [];
-      const selectedOpts = selectedIds.map((id) => {
-        const option = optionMap.get(id)!;
-        return { id: option.id, price: option.price };
-      });
-      const charges = calculateGroupCharges(
-        { id: group.id, pricingMode: group.pricing_mode, freeQuantity: group.free_quantity, fixedPrice: group.fixed_price },
-        selectedOpts,
-      );
-      return charges.map((c) => {
-        const option = optionMap.get(c.optionId)!;
-        return { groupName: group.name, optionName: option.name, price: c.charge };
-      });
-    });
-    const optionsTotal = resolvedOptions.reduce((sum, o) => sum + o.price, 0);
-    const lineSubtotal = roundCurrency((basePrice + optionsTotal) * item.quantity);
-
-    resolvedItems.push({
-      productId: product.id,
-      name: product.name,
-      unitPrice: basePrice,
-      quantity: item.quantity,
-      notes: item.notes ?? "",
-      subtotal: lineSubtotal,
-      options: resolvedOptions,
-    });
-  }
-
-  const subtotal = roundCurrency(resolvedItems.reduce((sum, i) => sum + i.subtotal, 0));
+  const resolution = await resolveOrderItems(db, restaurant.id, data.items);
+  if ("error" in resolution) return { error: resolution.error };
+  const { resolvedItems, subtotal, productMap } = resolution;
 
   // --- entrega / retirada ---
   // Recalcula tudo a partir do banco (zona, frete grátis, pedido mínimo,
@@ -165,7 +77,7 @@ export async function createOrderAction(input: CreateOrderInput): Promise<Create
   let estimatedTimeMinutes = restaurant.estimated_time_minutes;
 
   if (data.deliveryType === "delivery") {
-    let address: AddressSnapshot & { id?: string };
+    let address: CustomerAddress;
 
     if (data.addressId) {
       const { data: existing } = await db
@@ -193,13 +105,37 @@ export async function createOrderAction(input: CreateOrderInput): Promise<Create
       .select("*")
       .eq("restaurant_id", restaurant.id)
       .eq("active", true);
+    const { data: tiers } = await db
+      .from("delivery_distance_tiers")
+      .select("*")
+      .eq("restaurant_id", restaurant.id);
 
-    const match = matchDeliveryZone(zones ?? [], address.neighborhood);
-    if (match === null) return { error: "Não entregamos nesse bairro." };
-    deliveryFee = applyFreeShipping(match.fee, subtotal, restaurant.free_shipping_threshold);
-    estimatedTimeMinutes = match.zone?.estimated_time_minutes ?? restaurant.estimated_time_minutes;
+    let latitude = address.latitude;
+    let longitude = address.longitude;
+    if (restaurant.delivery_charge_mode !== "neighborhood" && (latitude == null || longitude == null)) {
+      const geocoded = await geocodeAddress(
+        `${address.street}, ${address.number}, ${address.neighborhood}, ${address.city}, ${address.state ?? ""}, Brasil`,
+      );
+      latitude = geocoded?.latitude ?? null;
+      longitude = geocoded?.longitude ?? null;
+      if (latitude != null && longitude != null) {
+        await db.from("customer_addresses").update({ latitude, longitude }).eq("id", address.id);
+      }
+    }
 
-    const minOrder = match.zone?.min_order_value ?? restaurant.min_order_value;
+    const quote = resolveDeliveryQuote(restaurant, zones ?? [], tiers ?? [], {
+      state: address.state,
+      city: address.city,
+      neighborhood: address.neighborhood,
+      latitude,
+      longitude,
+    });
+    if (!quote.eligible) return { error: quote.reason };
+
+    deliveryFee = applyFreeShipping(quote.fee, subtotal, restaurant.free_shipping_threshold);
+    estimatedTimeMinutes = quote.estimatedTimeMinutes ?? restaurant.estimated_time_minutes;
+
+    const minOrder = quote.matchedZone?.min_order_value ?? restaurant.min_order_value;
     if (subtotal < minOrder) {
       return { error: `Pedido mínimo para entrega: R$ ${minOrder.toFixed(2)}.` };
     }
@@ -234,10 +170,43 @@ export async function createOrderAction(input: CreateOrderInput): Promise<Create
       .ilike("code", data.couponCode.trim())
       .maybeSingle();
 
-    const evaluation = evaluateCoupon(coupon, subtotal);
-    if ("error" in evaluation) return { error: evaluation.error };
-    discount = roundCurrency(evaluation.discount);
-    couponId = coupon!.id;
+    if (coupon) {
+      const [{ count: usedByCustomerCount }, { count: priorOrdersCount }, { data: eligibleProducts }, { data: eligibleCategories }] =
+        await Promise.all([
+          db
+            .from("coupon_usages")
+            .select("id", { count: "exact", head: true })
+            .eq("coupon_id", coupon.id)
+            .eq("user_id", profile.id),
+          db
+            .from("orders")
+            .select("id", { count: "exact", head: true })
+            .eq("restaurant_id", restaurant.id)
+            .eq("customer_id", profile.id),
+          coupon.applies_to_all_products
+            ? Promise.resolve({ data: [] as { product_id: string }[] })
+            : db.from("coupon_products").select("product_id").eq("coupon_id", coupon.id),
+          coupon.applies_to_all_products
+            ? Promise.resolve({ data: [] as { category_id: string }[] })
+            : db.from("coupon_categories").select("category_id").eq("coupon_id", coupon.id),
+        ]);
+
+      const evaluation = evaluateCoupon(coupon, {
+        subtotal,
+        items: resolvedItems.map((i) => ({ productId: i.productId, categoryId: i.categoryId, subtotal: i.subtotal })),
+        deliveryType: data.deliveryType,
+        isFirstPurchase: (priorOrdersCount ?? 0) === 0,
+        usedByCustomerCount: usedByCustomerCount ?? 0,
+        eligibleProductIds: coupon.applies_to_all_products ? null : new Set((eligibleProducts ?? []).map((p) => p.product_id)),
+        eligibleCategoryIds: coupon.applies_to_all_products ? null : new Set((eligibleCategories ?? []).map((c) => c.category_id)),
+      });
+      if ("error" in evaluation) return { error: evaluation.error };
+      discount = roundCurrency(evaluation.discount);
+      if (evaluation.freeShipping) deliveryFee = 0;
+      couponId = coupon.id;
+    } else {
+      return { error: "Cupom não encontrado." };
+    }
   }
 
   const total = roundCurrency(Math.max(0, subtotal - discount + deliveryFee));
@@ -274,12 +243,16 @@ export async function createOrderAction(input: CreateOrderInput): Promise<Create
     return { error: "Estoque insuficiente para um ou mais itens. Atualize o carrinho e tente novamente." };
   }
 
+  // Aceite automático: o pedido já nasce no status correto (nunca passa por
+  // "new" de verdade quando ligado) — mesmo destino que updateOrderStatusAction
+  // usaria pra aceitar manualmente, só que sem a etapa manual.
   const { data: order, error: orderError } = await db
     .from("orders")
     .insert({
       restaurant_id: restaurant.id,
       customer_id: profile.id,
-      status: "new",
+      status: restaurant.auto_accept_orders ? "accepted" : "new",
+      accepted_at: restaurant.auto_accept_orders ? new Date().toISOString() : null,
       payment_status: "pending",
       payment_method: data.paymentMethod,
       delivery_type: data.deliveryType,

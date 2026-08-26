@@ -10,17 +10,9 @@ import { OrderRealtime } from "@/components/orders/order-realtime";
 import { PixPaymentCard } from "@/components/orders/pix-payment-card";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrencyBRL, formatDateTime, formatOptionGroupsSummary, formatOrderNumber } from "@/lib/format";
-import { PAYMENT_STATUS_LABEL } from "@/lib/orders/status";
+import { PAYMENT_METHOD_LABEL, PAYMENT_STATUS_LABEL } from "@/lib/orders/status";
 
 export const metadata: Metadata = { title: "Acompanhar pedido" };
-
-const PAYMENT_METHOD_LABEL: Record<string, string> = {
-  pix_online: "PIX (online)",
-  card_online: "Cartão (online)",
-  pix_manual: "PIX manual",
-  cash: "Dinheiro",
-  card_on_delivery: "Cartão na entrega",
-};
 
 export default async function PedidoPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

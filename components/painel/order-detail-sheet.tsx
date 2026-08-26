@@ -1,25 +1,45 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Store, Truck } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Loader2, Printer, RotateCcw, Store, Truck } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { formatCurrencyBRL, formatDateTime, formatOptionGroupsSummary, formatOrderNumber } from "@/lib/format";
-import { PAYMENT_STATUS_LABEL } from "@/lib/orders/status";
-import type { OrderItem, OrderItemOption } from "@/types/database";
+import { PAYMENT_METHOD_LABEL, PAYMENT_STATUS_LABEL, PRINT_STATUS_LABEL, shouldShowPrintBadge } from "@/lib/orders/status";
+import { requestReprintAction } from "@/lib/actions/painel/print";
+import type { OrderItem, OrderItemOption, Restaurant } from "@/types/database";
 import type { PainelOrder } from "@/lib/data/painel";
 
-const PAYMENT_METHOD_LABEL: Record<string, string> = {
-  pix_online: "PIX (online)",
-  card_online: "Cartão (online)",
-  pix_manual: "PIX manual",
-  cash: "Dinheiro",
-  card_on_delivery: "Cartão na entrega",
-};
-
-export function OrderDetailSheet({ order, onOpenChange }: { order: PainelOrder | null; onOpenChange: (open: boolean) => void }) {
+export function OrderDetailSheet({
+  order,
+  restaurant,
+  onOpenChange,
+}: {
+  order: PainelOrder | null;
+  restaurant: Restaurant;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const router = useRouter();
   const [items, setItems] = useState<(OrderItem & { options: OrderItemOption[] })[] | null>(null);
+  const [reprinting, setReprinting] = useState(false);
+
+  async function handleReprint() {
+    if (!order) return;
+    setReprinting(true);
+    const result = await requestReprintAction(order.id);
+    setReprinting(false);
+    if (result?.error) {
+      toast.error(result.error);
+      return;
+    }
+    toast.success("Pedido recolocado na fila de impressão.");
+    router.refresh();
+  }
 
   useEffect(() => {
     if (!order) return;
@@ -65,8 +85,27 @@ export function OrderDetailSheet({ order, onOpenChange }: { order: PainelOrder |
                 {order.estimated_time_minutes != null && (
                   <span className="text-xs text-muted-foreground">~{order.estimated_time_minutes} min</span>
                 )}
+                {shouldShowPrintBadge(order.print_status, restaurant.auto_print_enabled) && (
+                  <Badge variant="outline">{PRINT_STATUS_LABEL[order.print_status]}</Badge>
+                )}
               </div>
               <p className="text-sm text-muted-foreground">{formatDateTime(order.created_at)}</p>
+
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="outline" asChild>
+                  <Link href={`/painel/pedidos/${order.id}/imprimir`} target="_blank" rel="noopener noreferrer">
+                    <Printer className="size-4" />
+                    Imprimir
+                  </Link>
+                </Button>
+                <Button size="sm" variant="outline" disabled={reprinting} onClick={handleReprint}>
+                  <RotateCcw className="size-4" />
+                  {reprinting ? "Reimprimindo..." : "Reimprimir pedido"}
+                </Button>
+              </div>
+              {!restaurant.auto_print_enabled && (
+                <p className="text-xs text-muted-foreground">Nenhum dispositivo de impressão conectado ainda.</p>
+              )}
 
               {items === null ? (
                 <Loader2 className="size-5 animate-spin text-muted-foreground" />

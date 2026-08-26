@@ -7,11 +7,11 @@ import { ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrencyBRL, formatOrderNumber, formatTime } from "@/lib/format";
-import { ORDER_STATUS_LABEL, nextStatusOptions } from "@/lib/orders/status";
+import { ORDER_STATUS_LABEL, PRINT_STATUS_LABEL, nextStatusOptions, shouldShowPrintBadge } from "@/lib/orders/status";
 import { updateOrderStatusAction } from "@/lib/actions/painel/orders";
 import { OrderDetailSheet } from "./order-detail-sheet";
 import type { PainelOrder } from "@/lib/data/painel";
-import type { OrderStatus } from "@/types/database";
+import type { OrderStatus, Restaurant } from "@/types/database";
 
 const STATUS_ACTION_LABEL: Record<OrderStatus, string> = {
   new: "Aceitar",
@@ -24,7 +24,7 @@ const STATUS_ACTION_LABEL: Record<OrderStatus, string> = {
   cancelled: "Cancelado",
 };
 
-export function OrdersBoard({ orders }: { orders: PainelOrder[] }) {
+export function OrdersBoard({ orders, restaurant }: { orders: PainelOrder[]; restaurant: Restaurant }) {
   const router = useRouter();
   const [selected, setSelected] = useState<PainelOrder | null>(null);
   const [pending, setPending] = useState<string | null>(null);
@@ -76,7 +76,14 @@ export function OrdersBoard({ orders }: { orders: PainelOrder[] }) {
                 {formatTime(order.created_at)} · {order.delivery_type === "delivery" ? "Entrega" : "Retirada"}
               </p>
             </div>
-            <Badge variant="secondary">{ORDER_STATUS_LABEL[order.status]}</Badge>
+            <div className="flex flex-col items-end gap-1">
+              <Badge variant="secondary">{ORDER_STATUS_LABEL[order.status]}</Badge>
+              {shouldShowPrintBadge(order.print_status, restaurant.auto_print_enabled) && (
+                <Badge variant="outline" className="text-[10px]">
+                  {PRINT_STATUS_LABEL[order.print_status]}
+                </Badge>
+              )}
+            </div>
           </div>
           <p className="mt-2 font-semibold text-primary">{formatCurrencyBRL(order.total)}</p>
         </button>
@@ -148,7 +155,12 @@ export function OrdersBoard({ orders }: { orders: PainelOrder[] }) {
         </section>
       )}
 
-      <OrderDetailSheet key={selected?.id} order={selected} onOpenChange={(open) => !open && setSelected(null)} />
+      <OrderDetailSheet
+        key={selected?.id}
+        order={selected}
+        restaurant={restaurant}
+        onOpenChange={(open) => !open && setSelected(null)}
+      />
     </div>
   );
 }

@@ -43,10 +43,12 @@ export async function getMarketplaceRestaurants(): Promise<MarketplaceRestaurant
   return restaurants.map((r) => {
     const hours = hoursByRestaurant.get(r.id) ?? [];
     const fees = feesByRestaurant.get(r.id) ?? [];
+    const minDeliveryFee =
+      r.delivery_charge_mode === "neighborhood" ? (fees.length > 0 ? Math.min(...fees) : null) : (r.delivery_base_fee ?? null);
     return {
       ...r,
       isOpen: getOpenStatus(hours).isOpen && !r.orders_paused,
-      minDeliveryFee: fees.length > 0 ? Math.min(...fees) : null,
+      minDeliveryFee,
     };
   });
 }

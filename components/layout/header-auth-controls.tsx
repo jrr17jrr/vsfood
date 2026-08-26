@@ -142,7 +142,7 @@ export function MobileMenu({ profile, storeSlug }: { profile: HeaderProfile | nu
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button size="icon" variant="outline" className="md:hidden">
+        <Button size="icon" variant="outline" className="lg:hidden">
           <Menu className="size-5" />
         </Button>
       </SheetTrigger>

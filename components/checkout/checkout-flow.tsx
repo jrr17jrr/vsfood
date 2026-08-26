@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -15,12 +15,13 @@ import { createClient } from "@/lib/supabase/client";
 import { cartSubtotal, useCartStore } from "@/lib/store/cart";
 import { formatCurrencyBRL } from "@/lib/format";
 import { createOrderAction } from "@/lib/actions/orders";
-import { getPaymentCapabilitiesAction } from "@/lib/actions/checkout";
+import { getDeliveryQuoteAction, getPaymentCapabilitiesAction, previewCouponAction } from "@/lib/actions/checkout";
 import { AddressForm } from "@/components/account/address-form";
 import { CardPaymentBrick, type CardBrickSubmitData } from "./card-payment-brick";
 import { WhatsappGate } from "./whatsapp-gate";
 import type { AddressInput } from "@/lib/validations/checkout";
-import type { CustomerAddress, DeliveryZone, PaymentMethod, Restaurant } from "@/types/database";
+import type { CustomerAddress, PaymentMethod, Restaurant } from "@/types/database";
+import type { DeliveryQuote } from "@/lib/orders/delivery-pricing";
 
 const OFFLINE_PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
   { value: "pix_manual", label: "PIX (chave manual com o restaurante)" },
@@ -58,7 +59,6 @@ export function CheckoutFlow({
   const [whatsapp, setWhatsapp] = useState(initialWhatsapp);
 
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
-  const [zones, setZones] = useState<DeliveryZone[]>([]);
   const [addresses, setAddresses] = useState<CustomerAddress[]>([]);
   const [mpCapabilities, setMpCapabilities] = useState<{ onlineAvailable: boolean; publicKey: string | null }>({
     onlineAvailable: false,
@@ -69,7 +69,11 @@ export function CheckoutFlow({
   const [deliveryType, setDeliveryType] = useState<"delivery" | "pickup">("delivery");
   const [addressId, setAddressId] = useState<string | "new" | undefined>();
   const [newAddress, setNewAddress] = useState<AddressInput | null>(null);
+  const [rawQuote, setRawQuote] = useState<DeliveryQuote | null>(null);
   const [couponCode, setCouponCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number; freeShipping: boolean } | null>(null);
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [applyingCoupon, setApplyingCoupon] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("pix_manual");
   const [needsChange, setNeedsChange] = useState(false);
   const [changeFor, setChangeFor] = useState("");
@@ -81,15 +85,13 @@ export function CheckoutFlow({
     let cancelled = false;
     const supabase = createClient();
     (async () => {
-      const [{ data: restaurantData }, { data: zonesData }, { data: addressesData }, capabilities] = await Promise.all([
+      const [{ data: restaurantData }, { data: addressesData }, capabilities] = await Promise.all([
         supabase.from("restaurants").select("*").eq("id", restaurantId).maybeSingle(),
-        supabase.from("delivery_zones").select("*").eq("restaurant_id", restaurantId).eq("active", true).order("order"),
         supabase.from("customer_addresses").select("*").order("is_default", { ascending: false }),
         getPaymentCapabilitiesAction(restaurantId),
       ]);
       if (cancelled) return;
       setRestaurant(restaurantData ?? null);
-      setZones(zonesData ?? []);
       setAddresses(addressesData ?? []);
       setAddressId(addressesData && addressesData.length > 0 ? addressesData[0].id : "new");
       setMpCapabilities(capabilities);
@@ -113,42 +115,88 @@ export function CheckoutFlow({
   const showDeliveryTypeChoice = deliveryEnabled && pickupEnabled;
 
   const selectedAddress = addresses.find((a) => a.id === addressId);
-  const neighborhood = (selectedAddress?.neighborhood ?? newAddress?.neighborhood ?? "").trim().toLowerCase();
+  const quoteSource = selectedAddress ?? newAddress;
+  const quoteState = (quoteSource?.state ?? "").trim().toUpperCase();
+  const isValidQuoteSource =
+    deliveryType === "delivery" &&
+    !!restaurantId &&
+    !!quoteSource &&
+    quoteState.length === 2 &&
+    quoteSource.city.trim() !== "" &&
+    quoteSource.neighborhood.trim() !== "";
 
-  const matchedZone = useMemo(() => {
-    if (deliveryType !== "delivery" || zones.length === 0) return null;
-    return zones.find((z) => z.neighborhood.trim().toLowerCase() === neighborhood) ?? null;
-  }, [deliveryType, zones, neighborhood]);
+  // Cotação de entrega recalculada no servidor (nunca decide no client) toda
+  // vez que o endereço muda — é só um preview, createOrderAction recalcula
+  // tudo de novo na hora de criar o pedido de verdade. Enquanto o endereço
+  // não estiver completo o efeito não roda — `quote` abaixo já ignora
+  // qualquer valor antigo nesse caso.
+  useEffect(() => {
+    if (!isValidQuoteSource || !restaurantId || !quoteSource) return;
+    let cancelled = false;
+    getDeliveryQuoteAction(restaurantId, {
+      street: quoteSource.street,
+      number: quoteSource.number,
+      neighborhood: quoteSource.neighborhood,
+      city: quoteSource.city,
+      state: quoteState,
+    }).then((result) => {
+      if (cancelled) return;
+      setRawQuote(result);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isValidQuoteSource, restaurantId, quoteSource, quoteState]);
 
-  const noZonesConfigured = zones.length === 0;
-  const rawDeliveryFee =
-    deliveryType !== "delivery"
-      ? 0
-      : noZonesConfigured
-        ? 0
-        : !neighborhood
-          ? null
-          : matchedZone
-            ? matchedZone.fee
-            : null;
+  const quote = isValidQuoteSource ? rawQuote : null;
+  const quoteLoading = isValidQuoteSource && quote === null;
+  const rawDeliveryFee = deliveryType !== "delivery" ? 0 : quote?.eligible ? quote.fee : null;
 
   const freeShippingThreshold = restaurant?.free_shipping_threshold ?? null;
   const freeShippingApplied =
     rawDeliveryFee !== null && rawDeliveryFee > 0 && freeShippingThreshold != null && subtotal >= freeShippingThreshold;
-  const deliveryFee = rawDeliveryFee === null ? null : freeShippingApplied ? 0 : rawDeliveryFee;
+  const couponFreeShipping = appliedCoupon?.freeShipping ?? false;
+  const deliveryFee = rawDeliveryFee === null ? null : freeShippingApplied || couponFreeShipping ? 0 : rawDeliveryFee;
+  const discount = appliedCoupon?.discount ?? 0;
 
-  const total = Math.max(0, subtotal + (deliveryFee ?? 0));
+  const total = Math.max(0, subtotal - discount + (deliveryFee ?? 0));
+
+  const freeShippingRemaining =
+    freeShippingThreshold != null && !freeShippingApplied ? Math.max(0, freeShippingThreshold - subtotal) : 0;
 
   const effectiveMinOrder =
     deliveryType === "pickup"
       ? (restaurant?.pickup_min_order_value ?? 0)
-      : (matchedZone?.min_order_value ?? restaurant?.min_order_value ?? 0);
+      : (quote?.eligible ? quote.matchedZone?.min_order_value : undefined) ?? restaurant?.min_order_value ?? 0;
   const belowMinimum = subtotal < effectiveMinOrder;
 
   const estimatedTime =
     deliveryType === "pickup"
       ? (restaurant?.pickup_estimated_time_minutes ?? restaurant?.estimated_time_minutes)
-      : (matchedZone?.estimated_time_minutes ?? restaurant?.estimated_time_minutes);
+      : (quote?.eligible ? quote.estimatedTimeMinutes : null) ?? restaurant?.estimated_time_minutes;
+
+  async function handleApplyCoupon() {
+    if (!restaurantId || !couponCode.trim()) return;
+    setApplyingCoupon(true);
+    setCouponError(null);
+    const result = await previewCouponAction({
+      restaurantId,
+      code: couponCode.trim(),
+      items: items.map((item) => ({
+        productId: item.productId,
+        quantity: item.quantity,
+        optionIds: item.options.map((o) => ({ groupId: o.groupId, optionId: o.optionId })),
+      })),
+      deliveryType,
+    });
+    setApplyingCoupon(false);
+    if ("error" in result) {
+      setCouponError(result.error);
+      setAppliedCoupon(null);
+      return;
+    }
+    setAppliedCoupon({ code: couponCode.trim().toUpperCase(), discount: result.discount, freeShipping: result.freeShipping });
+  }
 
   async function submitOrder(card?: CardBrickSubmitData) {
     if (!restaurantId) return;
@@ -173,7 +221,7 @@ export function CheckoutFlow({
       deliveryType,
       addressId: deliveryType === "delivery" && addressId !== "new" ? addressId : undefined,
       newAddress: deliveryType === "delivery" && addressId === "new" ? (newAddress ?? undefined) : undefined,
-      couponCode: couponCode.trim() || undefined,
+      couponCode: appliedCoupon?.code,
       paymentMethod,
       needsChange: paymentMethod === "cash" ? needsChange : undefined,
       changeFor: paymentMethod === "cash" && needsChange ? Number(changeFor.replace(",", ".")) : undefined,
@@ -288,8 +336,16 @@ export function CheckoutFlow({
                 </div>
               )}
 
-              {rawDeliveryFee === null && (selectedAddress || newAddress) && (
-                <p className="text-sm font-medium text-destructive">Não entregamos neste bairro.</p>
+              {quoteSource && (
+                <>
+                  {quoteLoading && <p className="text-sm text-muted-foreground">Calculando entrega...</p>}
+                  {!quoteLoading && quote && !quote.eligible && (
+                    <p className="text-sm font-medium text-destructive">{quote.reason}</p>
+                  )}
+                  {!quoteLoading && quote?.eligible && quote.distanceKm != null && (
+                    <p className="text-sm text-muted-foreground">Você está a {quote.distanceKm.toFixed(1)} km da loja.</p>
+                  )}
+                </>
               )}
             </div>
           </section>
@@ -312,8 +368,26 @@ export function CheckoutFlow({
         <section>
           <h2 className="font-semibold">Cupom de desconto</h2>
           <div className="mt-3 flex gap-2">
-            <Input placeholder="Código do cupom" value={couponCode} onChange={(e) => setCouponCode(e.target.value)} />
+            <Input
+              placeholder="Código do cupom"
+              value={couponCode}
+              onChange={(e) => {
+                setCouponCode(e.target.value);
+                setAppliedCoupon(null);
+                setCouponError(null);
+              }}
+            />
+            <Button type="button" variant="outline" onClick={handleApplyCoupon} disabled={applyingCoupon || !couponCode.trim()}>
+              {applyingCoupon ? "Aplicando..." : "Aplicar"}
+            </Button>
           </div>
+          {couponError && <p className="mt-2 text-sm font-medium text-destructive">{couponError}</p>}
+          {appliedCoupon && (
+            <p className="mt-2 text-sm font-medium text-primary">
+              Cupom {appliedCoupon.code} aplicado
+              {appliedCoupon.freeShipping ? " — frete grátis." : ` — ${formatCurrencyBRL(appliedCoupon.discount)} de desconto.`}
+            </p>
+          )}
         </section>
 
         <section>
@@ -398,16 +472,16 @@ export function CheckoutFlow({
               <span>
                 {rawDeliveryFee === null
                   ? "—"
-                  : freeShippingApplied
+                  : freeShippingApplied || couponFreeShipping
                     ? <span className="text-primary">Grátis</span>
                     : formatCurrencyBRL(rawDeliveryFee)}
               </span>
             </div>
           )}
-          {freeShippingApplied && (
+          {discount > 0 && (
             <div className="flex justify-between text-primary">
-              <span>Frete grátis aplicado</span>
-              <span>-{formatCurrencyBRL(rawDeliveryFee ?? 0)}</span>
+              <span>Desconto ({appliedCoupon?.code})</span>
+              <span>-{formatCurrencyBRL(discount)}</span>
             </div>
           )}
           <div className="flex justify-between text-base font-bold">
@@ -415,6 +489,20 @@ export function CheckoutFlow({
             <span>{formatCurrencyBRL(total)}</span>
           </div>
         </div>
+
+        {freeShippingRemaining > 0 && (
+          <div className="mt-3 space-y-1.5">
+            <p className="text-xs text-muted-foreground">
+              Faltam {formatCurrencyBRL(freeShippingRemaining)} para ganhar entrega grátis.
+            </p>
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary">
+              <div
+                className="h-full rounded-full bg-primary transition-all"
+                style={{ width: `${Math.min(100, (subtotal / (freeShippingThreshold ?? 1)) * 100)}%` }}
+              />
+            </div>
+          </div>
+        )}
 
         {deliveryType === "delivery" && estimatedTime != null && rawDeliveryFee !== null && (
           <p className="mt-3 text-xs text-muted-foreground">Tempo estimado de entrega: {estimatedTime} min</p>

@@ -12,16 +12,20 @@ export function CartSheet({
   open,
   onOpenChange,
   minOrderValue,
+  freeShippingThreshold,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   minOrderValue: number;
+  freeShippingThreshold: number | null;
 }) {
   const items = useCartStore((s) => s.items);
   const updateItem = useCartStore((s) => s.updateItem);
   const removeItem = useCartStore((s) => s.removeItem);
   const subtotal = cartSubtotal(items);
   const belowMinimum = minOrderValue > 0 && subtotal < minOrderValue;
+  const freeShippingRemaining =
+    freeShippingThreshold != null && subtotal < freeShippingThreshold ? freeShippingThreshold - subtotal : 0;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -95,6 +99,22 @@ export function CartSheet({
               <span className="font-medium text-foreground">{formatCurrencyBRL(subtotal)}</span>
             </div>
             <p className="text-xs text-muted-foreground">Taxa de entrega calculada no checkout.</p>
+            {freeShippingRemaining > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-xs text-muted-foreground">
+                  Faltam {formatCurrencyBRL(freeShippingRemaining)} para ganhar entrega grátis.
+                </p>
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary">
+                  <div
+                    className="h-full rounded-full"
+                    style={{
+                      width: `${Math.min(100, (subtotal / (freeShippingThreshold ?? 1)) * 100)}%`,
+                      backgroundColor: "var(--store-button)",
+                    }}
+                  />
+                </div>
+              </div>
+            )}
             {belowMinimum && (
               <p className="text-sm font-medium text-destructive">
                 Pedido mínimo: {formatCurrencyBRL(minOrderValue)}

@@ -46,7 +46,7 @@ export async function PublicHeader() {
         <Link href="/" aria-label="VSFood">
           <VsfoodLogo />
         </Link>
-        <nav className="hidden items-center gap-8 text-sm font-medium text-muted-foreground md:flex">
+        <nav className="hidden items-center gap-8 text-sm font-medium text-muted-foreground lg:flex">
           {NAV_LINKS.map((link) => (
             <Link key={link.href} href={link.href} className="transition-colors hover:text-foreground">
               {link.label}
@@ -56,11 +56,11 @@ export async function PublicHeader() {
         <div className="flex items-center gap-2">
           <ThemeToggle />
           {headerProfile ? (
-            <div className="hidden md:block">
+            <div className="hidden lg:block">
               <DesktopUserMenu profile={headerProfile} storeSlug={storeSlug} />
             </div>
           ) : (
-            <div className="hidden items-center gap-2 md:flex">
+            <div className="hidden items-center gap-2 lg:flex">
               <Button variant="ghost" asChild>
                 <Link href="/login">Entrar</Link>
               </Button>

@@ -23,7 +23,10 @@ export type OrderStatus =
   | "cancelled";
 export type PaymentStatus = "pending" | "approved" | "rejected" | "cancelled" | "refunded";
 export type PaymentMethod = "pix_online" | "card_online" | "pix_manual" | "cash" | "card_on_delivery";
-export type CouponType = "percent" | "fixed";
+export type CouponType = "percent" | "fixed" | "free_shipping";
+export type DeliveryChargeMode = "neighborhood" | "fixed" | "per_km" | "tiered";
+export type PrintStatus = "pending" | "processing" | "printed" | "failed";
+export type PrintFormat = "a4" | "80mm" | "58mm";
 export type AccessType = "trial" | "subscriber" | "demo";
 
 type Timestamps = {
@@ -77,6 +80,20 @@ export type Restaurant = Timestamps & {
   free_shipping_threshold: number | null;
   pickup_min_order_value: number | null;
   pickup_estimated_time_minutes: number | null;
+  latitude: number | null;
+  longitude: number | null;
+  delivery_radius_km: number | null;
+  delivery_charge_mode: DeliveryChargeMode;
+  delivery_base_fee: number | null;
+  delivery_fee_per_km: number | null;
+  auto_accept_orders: boolean;
+  auto_print_enabled: boolean;
+  print_format: PrintFormat;
+  print_copies: number;
+  print_show_prices: boolean;
+  print_show_address: boolean;
+  print_show_phone: boolean;
+  print_show_notes: boolean;
 };
 
 export type Plan = Timestamps & {
@@ -202,16 +219,28 @@ export type CustomerAddress = Timestamps & {
   state: string | null;
   reference: string | null;
   is_default: boolean;
+  latitude: number | null;
+  longitude: number | null;
 };
 
 export type DeliveryZone = Timestamps & {
   id: string;
   restaurant_id: string;
   neighborhood: string;
+  state: string | null;
+  city: string | null;
   fee: number;
   active: boolean;
   min_order_value: number | null;
   estimated_time_minutes: number | null;
+  order: number;
+};
+
+export type DeliveryDistanceTier = Timestamps & {
+  id: string;
+  restaurant_id: string;
+  max_distance_km: number;
+  fee: number;
   order: number;
 };
 
@@ -236,6 +265,12 @@ export type Coupon = Timestamps & {
   usage_limit: number | null;
   used_count: number;
   active: boolean;
+  max_discount_value: number | null;
+  usage_limit_per_customer: number | null;
+  applies_to_delivery: boolean;
+  applies_to_pickup: boolean;
+  first_purchase_only: boolean;
+  applies_to_all_products: boolean;
 };
 
 export type CouponUsage = {
@@ -244,6 +279,16 @@ export type CouponUsage = {
   order_id: string;
   user_id: string | null;
   created_at: string;
+};
+
+export type CouponCategory = {
+  coupon_id: string;
+  category_id: string;
+};
+
+export type CouponProduct = {
+  coupon_id: string;
+  product_id: string;
 };
 
 export type AddressSnapshot = {
@@ -279,6 +324,11 @@ export type Order = Timestamps & {
   ready_at: string | null;
   completed_at: string | null;
   cancelled_at: string | null;
+  print_status: PrintStatus;
+  print_attempts: number;
+  last_print_attempt_at: string | null;
+  printed_at: string | null;
+  print_error: string | null;
 };
 
 export type OrderItem = {
@@ -360,12 +410,15 @@ export type Database = {
         { user_id: string; street: string; number: string; neighborhood: string; city: string }
       >;
       delivery_zones: TableDef<DeliveryZone, { restaurant_id: string; neighborhood: string }>;
+      delivery_distance_tiers: TableDef<DeliveryDistanceTier, { restaurant_id: string; max_distance_km: number; fee: number }>;
       opening_hours: TableDef<
         OpeningHour,
         { restaurant_id: string; weekday: number; opens_at: string; closes_at: string }
       >;
       coupons: TableDef<Coupon, { restaurant_id: string; code: string; type: CouponType; value: number }>;
       coupon_usages: TableDef<CouponUsage, { coupon_id: string; order_id: string }>;
+      coupon_categories: TableDef<CouponCategory, { coupon_id: string; category_id: string }>;
+      coupon_products: TableDef<CouponProduct, { coupon_id: string; product_id: string }>;
       orders: TableDef<
         Order,
         {
@@ -401,6 +454,7 @@ export type Database = {
       restore_products_stock: { Args: { p_items: Json }; Returns: void };
       duplicate_product: { Args: { p_product_id: string; p_restaurant_id: string }; Returns: string };
       duplicate_category: { Args: { p_category_id: string; p_restaurant_id: string }; Returns: string };
+      claim_next_print_order: { Args: { p_restaurant_id: string }; Returns: Order | null };
     };
   };
 };

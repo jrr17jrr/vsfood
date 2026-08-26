@@ -18,12 +18,16 @@ export default async function PainelLayout({ children }: { children: React.React
   return (
     <div className="flex min-h-screen">
       <OrdersRealtimeNotifier restaurantId={restaurantId} />
-      <PainelSidebar restaurantName={restaurant.name} newOrdersCount={newOrdersCount} />
+      <div className="print:hidden contents">
+        <PainelSidebar restaurantName={restaurant.name} newOrdersCount={newOrdersCount} />
+      </div>
       <div className="flex min-w-0 flex-1 flex-col">
-        <PainelMobileNav restaurantName={restaurant.name} newOrdersCount={newOrdersCount} />
-        {isAdminView && <AdminViewBanner restaurantName={restaurant.name} />}
-        <StoreStatusBar restaurant={restaurant} planName={planName} />
-        <main className="flex-1 bg-secondary/20 p-4 sm:p-6">{children}</main>
+        <div className="print:hidden contents">
+          <PainelMobileNav restaurantName={restaurant.name} newOrdersCount={newOrdersCount} />
+          {isAdminView && <AdminViewBanner restaurantName={restaurant.name} />}
+          <StoreStatusBar restaurant={restaurant} planName={planName} />
+        </div>
+        <main className="flex-1 bg-secondary/20 p-4 sm:p-6 print:p-0">{children}</main>
       </div>
     </div>
   );

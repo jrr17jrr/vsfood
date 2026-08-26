@@ -12,6 +12,7 @@ import {
   Palette,
   Wallet,
   BarChart3,
+  Printer,
   LogOut,
   Menu,
 } from "lucide-react";
@@ -32,6 +33,7 @@ const links = [
   { href: "/painel/cupons", label: "Cupons", icon: Ticket },
   { href: "/painel/horarios", label: "Horários", icon: Clock },
   { href: "/painel/entrega", label: "Entrega", icon: Truck },
+  { href: "/painel/impressao", label: "Impressão", icon: Printer },
   { href: "/painel/aparencia", label: "Aparência", icon: Palette },
   { href: "/painel/pagamentos", label: "Pagamentos", icon: Wallet },
   { href: "/painel/relatorios", label: "Relatórios", icon: BarChart3 },

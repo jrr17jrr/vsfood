@@ -59,3 +59,13 @@ export async function updateOrderStatusAction(orderId: string, status: OrderStat
   revalidatePath(`/pedido/${orderId}`);
   return {};
 }
+
+export async function updateAutoAcceptAction(enabled: boolean): Promise<{ error?: string }> {
+  const { restaurantId } = await requireRestaurantMembership();
+  const supabase = await createClient();
+  const { error } = await supabase.from("restaurants").update({ auto_accept_orders: enabled }).eq("id", restaurantId);
+  if (error) return { error: "Não foi possível atualizar o aceite automático." };
+  revalidatePath("/painel/pedidos");
+  revalidatePath("/painel/impressao");
+  return {};
+}

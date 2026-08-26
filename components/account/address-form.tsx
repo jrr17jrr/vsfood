@@ -87,6 +87,7 @@ export function AddressForm({
         <div className="space-y-1.5">
           <Label htmlFor="state">UF</Label>
           <Input id="state" maxLength={2} {...register("state")} />
+          {errors.state && <p className="text-xs text-destructive">{errors.state.message}</p>}
         </div>
         <div className="col-span-2 space-y-1.5">
           <Label htmlFor="reference">Ponto de referência</Label>
