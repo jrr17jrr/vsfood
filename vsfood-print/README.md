@@ -103,12 +103,48 @@ cd vsfood-print
 npm run tauri build
 ```
 
-O instalador final fica em `src-tauri/target/release/bundle/` — a Tauri gera, no Windows, um `.msi`
-(WiX) e/ou um `.exe` (NSIS) dependendo do bundler configurado (`tauri.conf.json > bundle.targets`,
-hoje `"all"`). **Não commitamos nenhum binário gerado** — depois de testar localmente, o caminho
-recomendado pra distribuir é subir o instalador como asset de uma **GitHub Release** (ou um bucket
-S3/Supabase Storage) e apontar o botão "Baixar VSFood Print" (`/painel/impressao` e `/vsfood-print`
-no VSFood web) pra essa URL via a env var `NEXT_PUBLIC_VSFOOD_PRINT_DOWNLOAD_URL`.
+`tauri.conf.json > bundle.targets` está fixado em `["nsis"]` (só o instalador NSIS, um único `.exe`)
+— de propósito, pra nunca ter dúvida sobre "qual arquivo é o final" entre `.msi`/`.exe`/`.app` etc.
+
+**Instalador gerado em:**
+```
+src-tauri/target/release/bundle/nsis/VSFood Print_<versão>_x64-setup.exe
+```
+(o número da versão vem de `tauri.conf.json` / `package.json`, hoje `0.1.0`).
+
+## Fluxo de release (publicar uma versão pro botão de download funcionar)
+
+**Não commitamos nenhum binário gerado no Git** (`src-tauri/target/` já está no `.gitignore`) — a
+distribuição é via **GitHub Releases**, que é feito pra hospedar assets binários e dá uma URL estável
+por asset. Passo a passo:
+
+1. Gerar o instalador:
+   ```bash
+   cd vsfood-print
+   npm run tauri build
+   ```
+2. Localizar o arquivo gerado em `src-tauri/target/release/bundle/nsis/*.exe` (caminho exato acima).
+3. Criar uma **GitHub Release** no repositório (tag sugerida: `vsfood-print-v0.1.0`, pra não colidir
+   com tags do VSFood web se houver):
+   ```bash
+   gh release create vsfood-print-v0.1.0 "src-tauri/target/release/bundle/nsis/VSFood Print_0.1.0_x64-setup.exe" \
+     --title "VSFood Print v0.1.0" --notes "Primeira versão — impressão automática A4."
+   ```
+   (ou pela UI do GitHub: Releases > Draft a new release > anexar o `.exe` nos assets.)
+4. Copiar a **URL do asset** anexado (aparece na página da release; formato
+   `https://github.com/<org>/<repo>/releases/download/vsfood-print-v0.1.0/VSFood.Print_0.1.0_x64-setup.exe`).
+5. Definir essa URL na variável de ambiente **`NEXT_PUBLIC_VSFOOD_PRINT_DOWNLOAD_URL`** do projeto
+   VSFood web na Vercel (Project Settings > Environment Variables) — é a única variável que o botão de
+   download lê (centralizada em `lib/vsfood-print.ts`; nenhum outro arquivo tem a URL hardcoded).
+6. Redeployar o VSFood web (`vercel deploy --prod` ou um novo push, conforme seu fluxo) — assim que a
+   env var estiver presente, o botão "Baixar VSFood Print" em `/painel/impressao` e `/vsfood-print`
+   passa a apontar pro instalador de verdade; sem ela, continua mostrando "Disponível em breve".
+7. Ao lançar uma nova versão, repetir os passos 1–6 e atualizar `VSFOOD_PRINT_VERSION` em
+   `lib/vsfood-print.ts` (VSFood web) pra bater com a versão mostrada perto do botão.
+
+Alternativas ao GitHub Releases (se preferir não usar): um bucket S3, Supabase Storage, ou qualquer
+CDN — a única exigência é que `NEXT_PUBLIC_VSFOOD_PRINT_DOWNLOAD_URL` aponte pra uma URL pública e
+estável do `.exe`.
 
 ## Variáveis de ambiente
 

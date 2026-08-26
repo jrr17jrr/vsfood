@@ -14,13 +14,12 @@ import { PublicHeader } from "@/components/layout/public-header";
 import { PublicFooter } from "@/components/layout/public-footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { getVsfoodPrintDownloadUrl, VSFOOD_PRINT_VERSION } from "@/lib/vsfood-print";
 
 export const metadata: Metadata = {
   title: "VSFood Print",
   description: "Seus pedidos impressos automaticamente, direto na cozinha.",
 };
-
-const DOWNLOAD_URL = process.env.NEXT_PUBLIC_VSFOOD_PRINT_DOWNLOAD_URL;
 
 const steps = [
   { icon: MonitorDown, text: "Baixe o aplicativo" },
@@ -34,6 +33,8 @@ const steps = [
 ];
 
 export default function VsfoodPrintPage() {
+  const downloadUrl = getVsfoodPrintDownloadUrl();
+
   return (
     <>
       <PublicHeader />
@@ -47,9 +48,9 @@ export default function VsfoodPrintPage() {
             </p>
 
             <div className="mt-8 flex flex-col items-center gap-3">
-              {DOWNLOAD_URL ? (
+              {downloadUrl ? (
                 <Button size="lg" className="h-12 px-8 text-base" asChild>
-                  <a href={DOWNLOAD_URL}>
+                  <a href={downloadUrl}>
                     <Download className="size-5" />
                     Baixar VSFood Print para Windows
                   </a>
@@ -63,7 +64,9 @@ export default function VsfoodPrintPage() {
                   <Badge variant="secondary">Disponível em breve</Badge>
                 </>
               )}
-              <p className="text-xs text-muted-foreground">Windows · v0.1.0 · Suporte a impressoras A4</p>
+              <p className="text-xs text-muted-foreground">
+                v{VSFOOD_PRINT_VERSION} · Compatível com Windows 10 e 11 · Suporte a impressoras A4
+              </p>
             </div>
           </div>
         </section>
