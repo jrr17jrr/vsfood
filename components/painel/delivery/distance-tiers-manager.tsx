@@ -11,6 +11,7 @@ import {
   deleteDistanceTierAction,
   updateDistanceTierAction,
 } from "@/lib/actions/painel/delivery-zones";
+import { toSafeNumber } from "@/lib/numeric";
 import type { DeliveryDistanceTier } from "@/types/database";
 
 export function DistanceTiersManager({ tiers }: { tiers: DeliveryDistanceTier[] }) {
@@ -39,7 +40,9 @@ export function DistanceTiersManager({ tiers }: { tiers: DeliveryDistanceTier[] 
     router.refresh();
   }
 
-  const sorted = [...tiers].sort((a, b) => a.max_distance_km - b.max_distance_km);
+  const sorted = [...tiers].sort(
+    (a, b) => toSafeNumber(a.max_distance_km, 0) - toSafeNumber(b.max_distance_km, 0),
+  );
 
   return (
     <div className="space-y-2">
@@ -67,8 +70,8 @@ export function DistanceTiersManager({ tiers }: { tiers: DeliveryDistanceTier[] 
 
 function TierRow({ tier, onDelete }: { tier: DeliveryDistanceTier; onDelete: (id: string) => void }) {
   const router = useRouter();
-  const [maxDistance, setMaxDistance] = useState(String(tier.max_distance_km));
-  const [fee, setFee] = useState(String(tier.fee));
+  const [maxDistance, setMaxDistance] = useState(String(toSafeNumber(tier.max_distance_km, 0)));
+  const [fee, setFee] = useState(String(toSafeNumber(tier.fee, 0)));
 
   async function handleBlur() {
     const result = await updateDistanceTierAction(tier.id, {

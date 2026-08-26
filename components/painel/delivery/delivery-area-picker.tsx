@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { updateStoreLocationAction } from "@/lib/actions/painel/delivery-zones";
+import { toSafeNumber } from "@/lib/numeric";
 import { StoreLocationMap } from "./store-location-map";
 import { DeliveryChargeModePicker } from "./delivery-charge-mode-picker";
 import type { DeliveryDistanceTier, DeliveryZone, Restaurant } from "@/types/database";
@@ -31,9 +32,9 @@ export function DeliveryAreaPicker({
   tiers: DeliveryDistanceTier[];
 }) {
   const router = useRouter();
-  const [lat, setLat] = useState(restaurant.latitude ?? DEFAULT_LATITUDE);
-  const [lng, setLng] = useState(restaurant.longitude ?? DEFAULT_LONGITUDE);
-  const [radiusKm, setRadiusKm] = useState(restaurant.delivery_radius_km ?? 8);
+  const [lat, setLat] = useState(toSafeNumber(restaurant.latitude, DEFAULT_LATITUDE, { min: -90, max: 90 }));
+  const [lng, setLng] = useState(toSafeNumber(restaurant.longitude, DEFAULT_LONGITUDE, { min: -180, max: 180 }));
+  const [radiusKm, setRadiusKm] = useState(toSafeNumber(restaurant.delivery_radius_km, 8, { min: 1, max: 30 }));
   const [savingLocation, setSavingLocation] = useState(false);
 
   async function handleSaveLocation() {

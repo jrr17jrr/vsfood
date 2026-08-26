@@ -4,6 +4,12 @@ import "leaflet/dist/leaflet.css";
 import { useEffect, useMemo, useRef } from "react";
 import L from "leaflet";
 import { MapContainer, TileLayer, Marker, Circle, useMap, useMapEvents } from "react-leaflet";
+import { toSafeNumber } from "@/lib/numeric";
+
+// Mesmo fallback de components/painel/delivery/delivery-area-picker.tsx — duplicado aqui
+// (em vez de importado) pra não criar um ciclo com o import dinâmico ssr:false daquele arquivo.
+const FALLBACK_LATITUDE = -22.9068;
+const FALLBACK_LONGITUDE = -43.1729;
 
 const PIN_ICON = L.divIcon({
   className: "",
@@ -47,7 +53,10 @@ export function StoreLocationMapLeaflet({
   onChange: (lat: number, lng: number) => void;
 }) {
   const markerRef = useRef<L.Marker>(null);
-  const center = useMemo<[number, number]>(() => [latitude, longitude], [latitude, longitude]);
+  const safeLatitude = toSafeNumber(latitude, FALLBACK_LATITUDE, { min: -90, max: 90 });
+  const safeLongitude = toSafeNumber(longitude, FALLBACK_LONGITUDE, { min: -180, max: 180 });
+  const safeRadiusKm = radiusKm != null ? toSafeNumber(radiusKm, 0, { min: 0.01 }) || null : null;
+  const center = useMemo<[number, number]>(() => [safeLatitude, safeLongitude], [safeLatitude, safeLongitude]);
 
   return (
     <MapContainer center={center} zoom={14} style={{ height: 320, width: "100%", borderRadius: 12 }} scrollWheelZoom={false}>
@@ -55,7 +64,7 @@ export function StoreLocationMapLeaflet({
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      <FitToCircle center={center} radiusKm={radiusKm} />
+      <FitToCircle center={center} radiusKm={safeRadiusKm} />
       <RecenterOnClick onChange={onChange} />
       <Marker
         position={center}
@@ -71,8 +80,8 @@ export function StoreLocationMapLeaflet({
           },
         }}
       />
-      {radiusKm != null && radiusKm > 0 && (
-        <Circle center={center} radius={radiusKm * 1000} pathOptions={{ color: "#F0631D", fillOpacity: 0.08 }} />
+      {safeRadiusKm != null && (
+        <Circle center={center} radius={safeRadiusKm * 1000} pathOptions={{ color: "#F0631D", fillOpacity: 0.08 }} />
       )}
     </MapContainer>
   );

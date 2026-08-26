@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { updateChargeModeAction } from "@/lib/actions/painel/delivery-zones";
+import { toOptionalSafeNumber } from "@/lib/numeric";
 import { DistanceTiersManager } from "./distance-tiers-manager";
 import { DeliveryZonesManager } from "@/components/painel/delivery-zones-manager";
 import type { DeliveryChargeMode, DeliveryDistanceTier, DeliveryZone, Restaurant } from "@/types/database";
@@ -23,8 +24,14 @@ export function DeliveryChargeModePicker({
 }) {
   const router = useRouter();
   const [mode, setMode] = useState<DeliveryChargeMode>(restaurant.delivery_charge_mode);
-  const [baseFee, setBaseFee] = useState(restaurant.delivery_base_fee != null ? String(restaurant.delivery_base_fee) : "");
-  const [feePerKm, setFeePerKm] = useState(restaurant.delivery_fee_per_km != null ? String(restaurant.delivery_fee_per_km) : "");
+  const [baseFee, setBaseFee] = useState(() => {
+    const n = toOptionalSafeNumber(restaurant.delivery_base_fee, { min: 0 });
+    return n != null ? String(n) : "";
+  });
+  const [feePerKm, setFeePerKm] = useState(() => {
+    const n = toOptionalSafeNumber(restaurant.delivery_fee_per_km, { min: 0 });
+    return n != null ? String(n) : "";
+  });
   const [saving, setSaving] = useState(false);
 
   async function handleSave() {
