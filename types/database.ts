@@ -244,6 +244,29 @@ export type DeliveryDistanceTier = Timestamps & {
   order: number;
 };
 
+export type PrintDevice = {
+  id: string;
+  restaurant_id: string;
+  name: string;
+  token_hash: string;
+  platform: string | null;
+  app_version: string | null;
+  last_seen_at: string | null;
+  created_at: string;
+  revoked_at: string | null;
+  active: boolean;
+};
+
+export type PrintPairingCode = {
+  id: string;
+  restaurant_id: string;
+  code_hash: string;
+  expires_at: string;
+  used_at: string | null;
+  created_by: string | null;
+  created_at: string;
+};
+
 export type OpeningHour = {
   id: string;
   restaurant_id: string;
@@ -447,6 +470,8 @@ export type Database = {
       plan_feature_links: TableDef<PlanFeatureLink, { plan_id: string; feature_id: string }>;
       plan_limits: TableDef<PlanLimit, { plan_id: string; key: string }>;
       trial_settings: TableDef<TrialSettings, object>;
+      print_devices: TableDef<PrintDevice, { restaurant_id: string; token_hash: string }>;
+      print_pairing_codes: TableDef<PrintPairingCode, { restaurant_id: string; code_hash: string; expires_at: string }>;
     };
     Views: Record<string, never>;
     Functions: {
@@ -455,6 +480,7 @@ export type Database = {
       duplicate_product: { Args: { p_product_id: string; p_restaurant_id: string }; Returns: string };
       duplicate_category: { Args: { p_category_id: string; p_restaurant_id: string }; Returns: string };
       claim_next_print_order: { Args: { p_restaurant_id: string }; Returns: Order | null };
+      recover_stale_print_orders: { Args: { p_stale_minutes: number }; Returns: number };
     };
   };
 };

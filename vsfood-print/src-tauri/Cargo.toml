@@ -1,0 +1,41 @@
+[package]
+name = "vsfood-print"
+version = "0.1.0"
+description = "VSFood Print — impressão automática de comandas"
+authors = ["VSFood"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+# The `_lib` suffix may seem redundant but it is necessary
+# to make the lib name unique and wouldn't conflict with the bin name.
+# This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
+name = "vsfood_print_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-opener = "2"
+tauri-plugin-autostart = "2"
+tauri-plugin-notification = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+tokio = { version = "1", features = ["rt", "rt-multi-thread", "macros", "time"] }
+keyring = "3"
+chrono = { version = "0.4", default-features = false, features = ["clock", "serde"] }
+thiserror = "2"
+uuid = { version = "1", features = ["v4"] }
+
+# Impressão silenciosa no Windows: falamos direto com o Print Spooler
+# (EnumPrinters/OpenPrinter/StartDocPrinter/WritePrinter, datatype "RAW") em
+# vez de pedir pro shell "imprimir um arquivo" — isso é o que garante que
+# NUNCA aparece nenhum diálogo do Windows. `windows` é o binding oficial da
+# Microsoft pra Win32 em Rust (mantido pela própria Microsoft, milhares de
+# projetos dependem dele) — ver README.md, seção "Impressão silenciosa".
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.61", features = ["Win32_Graphics_Printing", "Win32_Graphics_Gdi", "Win32_Storage_Xps_Printing", "Win32_Foundation"] }

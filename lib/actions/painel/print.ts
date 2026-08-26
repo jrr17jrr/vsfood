@@ -50,6 +50,16 @@ export async function requestReprintAction(orderId: string): Promise<Result> {
   return updateOwnedOrderPrintState(orderId, { print_status: "pending", print_error: null });
 }
 
+/** Toggle "Imprimir pedidos automaticamente" — só tem efeito de verdade com pelo menos um VSFood Print conectado. */
+export async function updateAutoPrintAction(enabled: boolean): Promise<Result> {
+  const { restaurantId } = await requireRestaurantMembership();
+  const supabase = await createClient();
+  const { error } = await supabase.from("restaurants").update({ auto_print_enabled: enabled }).eq("id", restaurantId);
+  if (error) return { error: "Não foi possível atualizar a impressão automática." };
+  revalidatePath("/painel/impressao");
+  return {};
+}
+
 const printSettingsSchema = z.object({
   printFormat: z.enum(["a4", "80mm", "58mm"]),
   printCopies: z.number().int().min(1).max(5),

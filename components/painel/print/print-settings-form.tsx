@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Badge } from "@/components/ui/badge";
 import { updatePrintSettingsAction } from "@/lib/actions/painel/print";
 import type { PrintFormat, Restaurant } from "@/types/database";
 
@@ -45,17 +44,6 @@ export function PrintSettingsForm({ restaurant }: { restaurant: Restaurant }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3 rounded-2xl border bg-card p-4 opacity-70">
-        <div>
-          <p className="text-sm font-medium">Impressão automática</p>
-          <p className="text-xs text-muted-foreground">Imprime a comanda sozinha assim que o pedido chega.</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="secondary">Requer VSFood Print</Badge>
-          <Switch checked={false} disabled />
-        </div>
-      </div>
-
       <div className="space-y-3 rounded-2xl border bg-card p-4">
         <p className="text-sm font-semibold">Formato preferido</p>
         <RadioGroup value={printFormat} onValueChange={(v) => setPrintFormat(v as PrintFormat)} className="grid grid-cols-3 gap-2">

@@ -3,6 +3,7 @@ import { PublicFooter } from "@/components/layout/public-footer";
 import { Hero } from "@/components/marketing/hero";
 import { HowItWorks } from "@/components/marketing/how-it-works";
 import { Features } from "@/components/marketing/features";
+import { PrintSection } from "@/components/marketing/print-section";
 import { PanelShowcase } from "@/components/marketing/panel-showcase";
 import { CustomizationShowcase } from "@/components/marketing/customization-showcase";
 import { PaymentsSection } from "@/components/marketing/payments-section";
@@ -19,6 +20,7 @@ export default function LandingPage() {
         <Hero />
         <HowItWorks />
         <Features />
+        <PrintSection />
         <PanelShowcase />
         <CustomizationShowcase />
         <PaymentsSection />

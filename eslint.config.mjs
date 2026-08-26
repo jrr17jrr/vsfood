@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // VSFood Print é um projeto Tauri/Vite isolado, com seu próprio lint/tsconfig.
+    "vsfood-print/**",
   ]),
 ]);
 
