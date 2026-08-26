@@ -12,12 +12,17 @@ const PIN_ICON = L.divIcon({
   iconAnchor: [16, 42],
 });
 
-function RecenterOnChange({ center }: { center: [number, number] }) {
+/** Ajusta o zoom automaticamente pra sempre mostrar o círculo inteiro (estilo seleção de raio do Meta Ads). */
+function FitToCircle({ center, radiusKm }: { center: [number, number]; radiusKm: number | null }) {
   const map = useMap();
   useEffect(() => {
-    map.setView(center);
+    if (radiusKm != null && radiusKm > 0) {
+      map.fitBounds(L.circle(center, { radius: radiusKm * 1000 }).getBounds(), { padding: [24, 24] });
+    } else {
+      map.setView(center, 14);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [center[0], center[1]]);
+  }, [center[0], center[1], radiusKm]);
   return null;
 }
 
@@ -50,7 +55,7 @@ export function StoreLocationMapLeaflet({
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      <RecenterOnChange center={center} />
+      <FitToCircle center={center} radiusKm={radiusKm} />
       <RecenterOnClick onChange={onChange} />
       <Marker
         position={center}
