@@ -21,14 +21,34 @@ const PIN_ICON = L.divIcon({
 /** Ajusta o zoom automaticamente pra sempre mostrar o círculo inteiro (estilo seleção de raio do Meta Ads). */
 function FitToCircle({ center, radiusKm }: { center: [number, number]; radiusKm: number | null }) {
   const map = useMap();
+
   useEffect(() => {
-    if (radiusKm != null && radiusKm > 0) {
-      map.fitBounds(L.circle(center, { radius: radiusKm * 1000 }).getBounds(), { padding: [24, 24] });
-    } else {
-      map.setView(center, 14);
-    }
+    if (!map) return;
+
+    // whenReady só dispara a callback depois que o mapa tem instância e tamanho prontos
+    // (chama na hora se já estiver pronto) — fitBounds/setView nunca rodam antes disso.
+    map.whenReady(() => {
+      const hasValidRadius = radiusKm != null && Number.isFinite(radiusKm) && radiusKm > 0;
+      if (!hasValidRadius) {
+        map.setView(center, 14);
+        return;
+      }
+
+      // Nunca usar L.circle(...).getBounds() aqui: um Circle criado fora do mapa nunca é
+      // projetado (this._map/this._point continuam undefined), e getBounds() quebra com
+      // "Cannot read properties of undefined (reading 'layerPointToLatLng')". O bounding
+      // box é calculado direto a partir de lat/lng + raio (LatLng.toBounds), sem depender
+      // de nenhuma camada estar montada no mapa.
+      const bounds = L.latLng(center).toBounds(radiusKm * 1000 * 2);
+      if (bounds.isValid()) {
+        map.fitBounds(bounds, { padding: [24, 24] });
+      } else {
+        map.setView(center, 14);
+      }
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [center[0], center[1], radiusKm]);
+  }, [map, center[0], center[1], radiusKm]);
+
   return null;
 }
 
